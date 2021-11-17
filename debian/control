@@ -1,0 +1,12 @@
+Source: ros-foxy-mapviz-plugins
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5core5a, libqt5opengl5-dev, qt5-qmake, ros-foxy-ament-cmake, ros-foxy-ament-index-cpp, ros-foxy-cv-bridge, ros-foxy-gps-msgs, ros-foxy-image-transport, ros-foxy-map-msgs, ros-foxy-mapviz, ros-foxy-marti-common-msgs, ros-foxy-marti-nav-msgs, ros-foxy-marti-sensor-msgs, ros-foxy-marti-visualization-msgs, ros-foxy-nav-msgs, ros-foxy-pluginlib, ros-foxy-rclcpp, ros-foxy-rclcpp-action, ros-foxy-sensor-msgs, ros-foxy-std-msgs, ros-foxy-stereo-msgs, ros-foxy-swri-image-util, ros-foxy-swri-math-util, ros-foxy-swri-route-util, ros-foxy-swri-transform-util, ros-foxy-tf2, ros-foxy-visualization-msgs, ros-foxy-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-foxy-mapviz-plugins
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-foxy-ament-index-cpp, ros-foxy-cv-bridge, ros-foxy-gps-msgs, ros-foxy-image-transport, ros-foxy-map-msgs, ros-foxy-mapviz, ros-foxy-marti-common-msgs, ros-foxy-marti-nav-msgs, ros-foxy-marti-sensor-msgs, ros-foxy-marti-visualization-msgs, ros-foxy-nav-msgs, ros-foxy-pluginlib, ros-foxy-rclcpp, ros-foxy-rclcpp-action, ros-foxy-sensor-msgs, ros-foxy-std-msgs, ros-foxy-stereo-msgs, ros-foxy-swri-image-util, ros-foxy-swri-math-util, ros-foxy-swri-route-util, ros-foxy-swri-transform-util, ros-foxy-tf2, ros-foxy-visualization-msgs, ros-foxy-ros-workspace
+Description: Common plugins for the Mapviz visualization tool
