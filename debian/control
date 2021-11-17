@@ -1,0 +1,12 @@
+Source: ros-foxy-multires-image
+Section: misc
+Priority: optional
+Maintainer: P. J. Reed <preed@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5core5a, libqt5opengl5-dev, qt5-qmake, ros-foxy-ament-cmake, ros-foxy-cv-bridge, ros-foxy-geometry-msgs, ros-foxy-gps-msgs, ros-foxy-mapviz, ros-foxy-pluginlib, ros-foxy-rclcpp, ros-foxy-swri-math-util, ros-foxy-swri-transform-util, ros-foxy-tf2, ros-foxy-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-foxy-multires-image
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-foxy-cv-bridge, ros-foxy-geometry-msgs, ros-foxy-gps-msgs, ros-foxy-mapviz, ros-foxy-pluginlib, ros-foxy-rclcpp, ros-foxy-rclpy, ros-foxy-swri-math-util, ros-foxy-swri-transform-util, ros-foxy-tf2, ros-foxy-ros-workspace
+Description: multires_image
