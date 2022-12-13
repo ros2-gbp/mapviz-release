@@ -1,3 +1,30 @@
+## mapviz (melodic) - 1.4.2-1
+
+The packages in the `mapviz` repository were released into the `melodic` distro by running `/usr/local/bin/bloom-release --edit --rosdistro melodic --track melodic --override-release-repository-url https://github.com/ros2-gbp/mapviz-release.git mapviz` on `Tue, 13 Dec 2022 19:04:44 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/swri-robotics-gbp/mapviz-release.git
+- rosdistro version: `1.4.1-1`
+- old version: `1.4.1-1`
+- new version: `1.4.2-1`
+
+Versions of tools used:
+
+- bloom version: `0.11.2`
+- catkin_pkg version: `0.5.2`
+- rosdep version: `0.22.1`
+- rosdistro version: `0.9.0`
+- vcstools version: `0.1.42`
+
+
 ## mapviz (foxy) - 2.2.0-1
 
 The packages in the `mapviz` repository were released into the `foxy` distro by running `/usr/bin/bloom-release --edit --rosdistro foxy --track foxy mapviz` on `Wed, 17 Nov 2021 22:35:44 -0000`
