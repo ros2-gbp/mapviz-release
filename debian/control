@@ -1,0 +1,12 @@
+Source: ros-melodic-mapviz
+Section: misc
+Priority: optional
+Maintainer: Marc Alban <malban@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5opengl5-dev, libxi-dev, libxmu-dev, pkg-config, qt5-qmake, qtbase5-dev, ros-melodic-catkin, ros-melodic-cv-bridge, ros-melodic-image-transport, ros-melodic-marti-common-msgs, ros-melodic-message-generation, ros-melodic-pluginlib, ros-melodic-rosapi, ros-melodic-roscpp, ros-melodic-rqt-gui, ros-melodic-rqt-gui-cpp, ros-melodic-std-srvs, ros-melodic-swri-transform-util, ros-melodic-swri-yaml-util, ros-melodic-tf
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-melodic-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, ros-melodic-cv-bridge, ros-melodic-image-transport, ros-melodic-marti-common-msgs, ros-melodic-message-runtime, ros-melodic-pluginlib, ros-melodic-rosapi, ros-melodic-roscpp, ros-melodic-rqt-gui, ros-melodic-rqt-gui-cpp, ros-melodic-std-srvs, ros-melodic-swri-transform-util, ros-melodic-swri-yaml-util, ros-melodic-tf
+Description: mapviz
