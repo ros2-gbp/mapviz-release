@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015-2020, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -45,13 +45,14 @@
 #include <QPalette>
 
 // ROS libraries
-#include <rclcpp/rclcpp.hpp>
-#include <tf2/transform_datatypes.h>
+#include <ros/ros.h>
+#include <tf/transform_datatypes.h>
 
 #include <swri_transform_util/frames.h>
+#include <swri_yaml_util/yaml_util.h>
 
 // Declare plugin
-#include <pluginlib/class_list_macros.hpp>
+#include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(tile_map::TileMapPlugin, mapviz::MapvizPlugin)
 
 namespace tile_map
@@ -68,35 +69,33 @@ namespace tile_map
   QString TileMapPlugin::STAMEN_TONER_NAME = "Stamen (toner)";
   QString TileMapPlugin::STAMEN_WATERCOLOR_NAME = "Stamen (watercolor)";
 
-  TileMapPlugin::TileMapPlugin()
-  : MapvizPlugin()
-  , ui_()
-  , config_widget_(new QWidget())
-  , transformed_(false)
-  , last_center_x_(0.0)
-  , last_center_y_(0.0)
-  , last_scale_(0.0)
-  , last_height_(0)
-  , last_width_(0)
+  TileMapPlugin::TileMapPlugin() :
+    config_widget_(new QWidget()),
+    transformed_(false),
+    last_center_x_(0.0),
+    last_center_y_(0.0),
+    last_scale_(0.0),
+    last_height_(0),
+    last_width_(0)
   {
     ui_.setupUi(config_widget_);
 
     tile_sources_[STAMEN_TERRAIN_NAME] =
-        std::make_shared<WmtsSource>(STAMEN_TERRAIN_NAME,
+        boost::make_shared<WmtsSource>(STAMEN_TERRAIN_NAME,
                                        "http://tile.stamen.com/terrain/{level}/{x}/{y}.png",
                                        false,
                                        15);
     tile_sources_[STAMEN_TONER_NAME] =
-        std::make_shared<WmtsSource>(STAMEN_TONER_NAME,
+        boost::make_shared<WmtsSource>(STAMEN_TONER_NAME,
                                        "http://tile.stamen.com/toner/{level}/{x}/{y}.png",
                                        false,
                                        19);
     tile_sources_[STAMEN_WATERCOLOR_NAME] =
-        std::make_shared<WmtsSource>(STAMEN_WATERCOLOR_NAME,
+        boost::make_shared<WmtsSource>(STAMEN_WATERCOLOR_NAME,
                                        "http://tile.stamen.com/watercolor/{level}/{x}/{y}.jpg",
                                        false,
                                        19);
-    std::shared_ptr<BingSource> bing = std::make_shared<BingSource>(BING_NAME);
+    boost::shared_ptr<BingSource> bing = boost::make_shared<BingSource>(BING_NAME);
     tile_sources_[BING_NAME] = bing;
 
     QPalette p(config_widget_->palette());
@@ -117,6 +116,10 @@ namespace tile_map
     QObject::connect(ui_.source_combo, SIGNAL(activated(const QString&)), this, SLOT(SelectSource(const QString&)));
     QObject::connect(ui_.save_button, SIGNAL(clicked()), this, SLOT(SaveCustomSource()));
     QObject::connect(ui_.reset_cache_button, SIGNAL(clicked()), this, SLOT(ResetTileCache()));
+  }
+
+  TileMapPlugin::~TileMapPlugin()
+  {
   }
 
   void TileMapPlugin::DeleteTileSource()
@@ -154,7 +157,7 @@ namespace tile_map
       startCustomEditing();
     }
 
-    std::map<QString, std::shared_ptr<TileSource> >::iterator iter = tile_sources_.find(source);
+    std::map<QString, boost::shared_ptr<TileSource> >::iterator iter = tile_sources_.find(source);
 
     // If the previously selected source was Bing, these will have been changed, so
     // they should be changed back.  There's not an easy way to know here what the
@@ -191,7 +194,7 @@ namespace tile_map
     QString current_source = ui_.source_combo->currentText();
     QString default_name = "";
 
-    auto iter = tile_sources_.find(current_source);
+    std::map<QString, boost::shared_ptr<TileSource> >::iterator iter = tile_sources_.find(current_source);
     if (iter != tile_sources_.end())
     {
       if (iter->second->IsCustom())
@@ -202,7 +205,7 @@ namespace tile_map
       {
         // If the user has picked Bing as they're source, we're not actually
         // saving a custom map source, just updating the API key
-        BingSource* bing_source = dynamic_cast<BingSource*>(iter->second.get());
+        BingSource* bing_source = static_cast<BingSource*>(iter->second.get());
         bing_source->SetApiKey(ui_.base_url_text->text());
         return;
       }
@@ -218,7 +221,7 @@ namespace tile_map
     name = name.trimmed();
     if (ok && !name.isEmpty())
     {
-      std::shared_ptr<WmtsSource> source = std::make_shared<WmtsSource>(name,
+      boost::shared_ptr<WmtsSource> source = boost::make_shared<WmtsSource>(name,
                         ui_.base_url_text->text(),
                         true,
                         ui_.max_zoom_spin_box->value());
@@ -245,7 +248,7 @@ namespace tile_map
     if (message == ui_.status->text().toStdString())
       return;
 
-    RCLCPP_ERROR(node_->get_logger(), "Error: %s", message.c_str());
+    ROS_ERROR("Error: %s", message.c_str());
     QPalette p(ui_.status->palette());
     p.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p);
@@ -257,7 +260,7 @@ namespace tile_map
     if (message == ui_.status->text().toStdString())
       return;
 
-    RCLCPP_INFO(node_->get_logger(), "%s", message.c_str());
+    ROS_INFO("%s", message.c_str());
     QPalette p(ui_.status->palette());
     p.setColor(QPalette::Text, Qt::green);
     ui_.status->setPalette(p);
@@ -269,7 +272,7 @@ namespace tile_map
     if (message == ui_.status->text().toStdString())
       return;
 
-    RCLCPP_WARN(node_->get_logger(), "%s", message.c_str());
+    ROS_WARN("%s", message.c_str());
     QPalette p(ui_.status->palette());
     p.setColor(QPalette::Text, Qt::darkYellow);
     ui_.status->setPalette(p);
@@ -302,7 +305,7 @@ namespace tile_map
     swri_transform_util::Transform to_wgs84;
     if (tf_manager_->GetTransform(source_frame_, target_frame_, to_wgs84))
     {
-      tf2::Vector3 center(x, y, 0);
+      tf::Vector3 center(x, y, 0);
       center = to_wgs84 * center;
 
       if (center.y() != last_center_y_ ||
@@ -319,7 +322,7 @@ namespace tile_map
         last_width_ = canvas_->width();
         last_height_ = canvas_->height();
         tile_map_.SetView(center.y(), center.x(), scale, canvas_->width(), canvas_->height());
-        RCLCPP_DEBUG(node_->get_logger(), "TileMapPlugin::Draw: Successfully set view");
+        ROS_DEBUG("TileMapPlugin::Draw: Successfully set view");
       }
       tile_map_.Draw();
     }
@@ -339,30 +342,30 @@ namespace tile_map
     }
   }
 
-  void TileMapPlugin::LoadConfig(const YAML::Node& node, const std::string&)
+  void TileMapPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
-    if (node[CUSTOM_SOURCES_KEY])
+    if (swri_yaml_util::FindValue(node, CUSTOM_SOURCES_KEY))
     {
       const YAML::Node& sources = node[CUSTOM_SOURCES_KEY];
       YAML::Node::const_iterator source_iter;
-      for (auto source_yaml : sources)
+      for (source_iter = sources.begin(); source_iter != sources.end(); source_iter++)
       {
-        std::string type;
-        if (source_yaml[TYPE_KEY])
+        std::string type = "";
+        if (swri_yaml_util::FindValue(*source_iter, TYPE_KEY))
         {
           // If the type isn't set, we'll assume it's WMTS
-          type = source_yaml[TYPE_KEY].as<std::string>();
+          (*source_iter)[TYPE_KEY] >> type;
         }
-        std::shared_ptr<TileSource> source;
+        boost::shared_ptr<TileSource> source;
         if (type == "wmts" || type.empty())
         {
           std::string name;
           std::string base_url;
           int max_zoom;
-          name = source_yaml[NAME_KEY].as<std::string>();
-          base_url = source_yaml[BASE_URL_KEY].as<std::string>();
-          max_zoom = source_yaml[MAX_ZOOM_KEY].as<int>();
-          source = std::make_shared<WmtsSource>(
+          (*source_iter)[NAME_KEY] >> name;
+          (*source_iter)[BASE_URL_KEY] >> base_url;
+          (*source_iter)[MAX_ZOOM_KEY] >> max_zoom;
+          source = boost::make_shared<WmtsSource>(
               QString::fromStdString(name),
               QString::fromStdString(base_url),
               true,
@@ -371,24 +374,26 @@ namespace tile_map
         else if (type == "bing")
         {
           std::string name;
-          name = source_yaml[NAME_KEY].as<std::string>();
-          source = std::make_shared<BingSource>(QString::fromStdString(name));
+          (*source_iter)[NAME_KEY] >> name;
+          source = boost::make_shared<BingSource>(QString::fromStdString(name));
         }
         tile_sources_[source->GetName()] = source;
         ui_.source_combo->addItem(source->GetName());
       }
     }
 
-    if (node[BING_API_KEY])
+    if (swri_yaml_util::FindValue(node, BING_API_KEY))
     {
-      std::string key = node[BING_API_KEY].as<std::string>();
-      BingSource* source = dynamic_cast<BingSource*>(tile_sources_[BING_NAME].get());
+      std::string key;
+      node[BING_API_KEY] >> key;
+      BingSource* source = static_cast<BingSource*>(tile_sources_[BING_NAME].get());
       source->SetApiKey(QString::fromStdString(key));
     }
     
-    if (node[SOURCE_KEY])
+    if (swri_yaml_util::FindValue(node, SOURCE_KEY))
     {
-      std::string source = node[SOURCE_KEY].as<std::string>();
+      std::string source;
+      node[SOURCE_KEY] >> source;
 
       int index = ui_.source_combo->findText(QString::fromStdString(source), Qt::MatchExactly);
 
@@ -401,11 +406,11 @@ namespace tile_map
     }
   }
 
-  void TileMapPlugin::SaveConfig(YAML::Emitter& emitter, const std::string&)
+  void TileMapPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& path)
   {
     emitter << YAML::Key << CUSTOM_SOURCES_KEY << YAML::Value << YAML::BeginSeq;
 
-    std::map<QString, std::shared_ptr<TileSource> >::iterator iter;
+    std::map<QString, boost::shared_ptr<TileSource> >::iterator iter;
     for (iter = tile_sources_.begin(); iter != tile_sources_.end(); iter++)
     {
       if (iter->second->IsCustom())
@@ -420,7 +425,7 @@ namespace tile_map
     }
     emitter << YAML::EndSeq;
 
-    BingSource* bing_source = dynamic_cast<BingSource*>(tile_sources_[BING_NAME].get());
+    BingSource* bing_source = static_cast<BingSource*>(tile_sources_[BING_NAME].get());
     emitter << YAML::Key << BING_API_KEY <<
                YAML::Value << boost::trim_copy(bing_source->GetApiKey().toStdString());
 
@@ -428,13 +433,13 @@ namespace tile_map
                YAML::Value << boost::trim_copy(ui_.source_combo->currentText().toStdString());
   }
 
-  void TileMapPlugin::selectTileSource(const std::shared_ptr<TileSource>& tile_source)
+  void TileMapPlugin::selectTileSource(const boost::shared_ptr<TileSource>& tile_source)
   {
     last_height_ = 0; // This will force us to recalculate our view
     tile_map_.SetTileSource(tile_source);
     if (tile_source->GetType() == BingSource::BING_TYPE)
     {
-      BingSource* bing_source = dynamic_cast<BingSource*>(tile_source.get());
+      BingSource* bing_source = static_cast<BingSource*>(tile_source.get());
       ui_.base_url_text->setText(bing_source->GetApiKey());
     }
     else
@@ -458,12 +463,6 @@ namespace tile_map
     ui_.delete_button->setEnabled(false);
     ui_.max_zoom_spin_box->setEnabled(false);
     ui_.save_button->setEnabled(false);
-  }
-
-  void TileMapPlugin::SetNode(rclcpp::Node& node)
-  {
-    MapvizPlugin::SetNode(node);
-    tile_map_.SetLogger(node.get_logger());
   }
 }
 

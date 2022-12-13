@@ -48,7 +48,7 @@ namespace tile_map
   {
   Q_OBJECT
   public:
-    ~TileSource() override = default;
+    virtual ~TileSource() {};
 
     virtual const QString& GetBaseUrl() const;
 
