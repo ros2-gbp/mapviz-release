@@ -1,0 +1,12 @@
+Source: ros-foxy-mapviz-interfaces
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), ros-foxy-builtin-interfaces, ros-foxy-marti-common-msgs, ros-foxy-rosidl-default-generators, ros-foxy-ros-workspace, ros-foxy-rosidl-typesupport-fastrtps-c, ros-foxy-rosidl-typesupport-fastrtps-cpp, ros-foxy-rosidl-typesupport-connext-c, ros-foxy-rosidl-typesupport-connext-cpp
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-foxy-mapviz-interfaces
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ros-foxy-rosidl-default-runtime, ros-foxy-ros-workspace
+Description: ROS interfaces used by Mapviz
