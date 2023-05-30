@@ -1,0 +1,12 @@
+Source: ros-foxy-mapviz
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt5-qmake, ros-foxy-ament-cmake, ros-foxy-cv-bridge, ros-foxy-geometry-msgs, ros-foxy-image-transport, ros-foxy-mapviz-interfaces, ros-foxy-marti-common-msgs, ros-foxy-pluginlib, ros-foxy-rclcpp, ros-foxy-rqt-gui, ros-foxy-rqt-gui-cpp, ros-foxy-std-srvs, ros-foxy-swri-math-util, ros-foxy-swri-transform-util, ros-foxy-tf2, ros-foxy-tf2-geometry-msgs, ros-foxy-tf2-ros, ros-foxy-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-foxy-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, libyaml-cpp-dev, ros-foxy-cv-bridge, ros-foxy-geometry-msgs, ros-foxy-image-transport, ros-foxy-launch-xml, ros-foxy-mapviz-interfaces, ros-foxy-marti-common-msgs, ros-foxy-pluginlib, ros-foxy-rclcpp, ros-foxy-rqt-gui, ros-foxy-rqt-gui-cpp, ros-foxy-std-srvs, ros-foxy-swri-math-util, ros-foxy-swri-transform-util, ros-foxy-tf2, ros-foxy-tf2-geometry-msgs, ros-foxy-tf2-ros, ros-foxy-ros-workspace
+Description: mapviz
