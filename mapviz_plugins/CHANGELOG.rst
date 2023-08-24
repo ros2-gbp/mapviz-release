@@ -2,6 +2,9 @@
 Changelog for package mapviz_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.3.0 (2023-08-24)
+------------------
+
 2.2.2 (2023-06-07)
 ------------------
 * Add ros_environment as dependency
