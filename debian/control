@@ -1,0 +1,12 @@
+Source: ros-rolling-multires-image
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), ament-cmake, libcv-bridge-dev, libgeometry-msgs-dev, libqt5core5a, libqt5opengl5-dev, libtf2-dev, pluginlib-dev, python3-cv-bridge, python3-geometry-msgs, python3-tf2, qt5-qmake, ros-geometry-msgs, ros-rolling-gps-msgs, ros-rolling-mapviz, ros-rolling-rclcpp, ros-rolling-swri-math-util, ros-rolling-swri-transform-util, ros-rolling-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-rolling-multires-image
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libcv-bridge-dev, libgeometry-msgs-dev, libqt5core5a, libqt5opengl5, libtf2-dev, pluginlib-dev, python3-cv-bridge, python3-geometry-msgs, python3-tf2, ros-geometry-msgs, ros-rolling-gps-msgs, ros-rolling-mapviz, ros-rolling-rclcpp, ros-rolling-rclpy, ros-rolling-swri-math-util, ros-rolling-swri-transform-util, ros-rolling-ros-workspace
+Description: multires_image
