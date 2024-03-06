@@ -1,0 +1,13 @@
+Source: ros-rolling-tile-map
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libglew-dev, libjsoncpp-dev, libqt5core5a, libqt5opengl5-dev, libyaml-cpp-dev, qt5-qmake, ros-rolling-ament-cmake, ros-rolling-mapviz, ros-rolling-pluginlib, ros-rolling-rclcpp, ros-rolling-swri-math-util, ros-rolling-swri-transform-util, ros-rolling-tf2, ros-rolling-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-rolling-tile-map
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libglew-dev, libjsoncpp25, libqt5core5a, libqt5opengl5, libyaml-cpp-dev, ros-rolling-mapviz, ros-rolling-pluginlib, ros-rolling-rclcpp, ros-rolling-swri-math-util, ros-rolling-swri-transform-util, ros-rolling-tf2, ros-rolling-ros-workspace
+Description: Tile map provides a slippy map style interface for visualizing OpenStreetMap and GoogleMap tiles.
+ A mapviz visualization plug-in is also implemented
