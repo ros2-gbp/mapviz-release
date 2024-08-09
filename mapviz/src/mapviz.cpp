@@ -284,9 +284,17 @@ void Mapviz::Initialize()
 
     connect(group, SIGNAL(triggered(QAction*)), this, SLOT(SetImageTransport(QAction*)));
 
+    rclcpp::QoS dynamic_tf_qos(100);
+    dynamic_tf_qos.best_effort();
+    dynamic_tf_qos.durability_volatile();
     tf_buf_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
     tf_buf_->setUsingDedicatedThread(true);
-    tf_ = std::make_shared<tf2_ros::TransformListener>(*tf_buf_, node_, false);
+    tf_ = std::make_shared<tf2_ros::TransformListener>(
+      *tf_buf_,
+      node_,
+      false,
+      dynamic_tf_qos);
+    
     tf_manager_ = std::make_shared<swri_transform_util::TransformManager>(node_);
     try
     {
@@ -1040,14 +1048,16 @@ void Mapviz::Hover(double x, double y, double scale)
     xy_pos_label_->update();
 
     swri_transform_util::Transform transform;
+    std::string fixed_frame = ui_.fixedframe->currentText().toStdString();
     if
     (
+      fixed_frame.length() > 0 &&
       tf_manager_->SupportsTransform(
         swri_transform_util::_wgs84_frame,
-        ui_.fixedframe->currentText().toStdString()) &&
+        fixed_frame) &&
       tf_manager_->GetTransform(
         swri_transform_util::_wgs84_frame,
-        ui_.fixedframe->currentText().toStdString(),
+        fixed_frame,
         transform))
     {
       tf2::Vector3 point(x, y, 0);
@@ -1471,7 +1481,7 @@ void Mapviz::SelectBackgroundColor(const QColor &color)
 void Mapviz::SetCaptureDirectory()
 {
   QFileDialog dialog(this, "Select Capture Directory");
-  dialog.setFileMode(QFileDialog::DirectoryOnly);
+  dialog.setOption(QFileDialog::ShowDirsOnly, true);
 
   dialog.exec();
 
