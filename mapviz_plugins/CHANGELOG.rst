@@ -2,6 +2,9 @@
 Changelog for package mapviz_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.4.2 (2024-08-12)
+------------------
+
 2.4.1 (2024-08-09)
 ------------------
 * Code cleanup (`#820 <https://github.com/swri-robotics/mapviz/issues/820>`_)
