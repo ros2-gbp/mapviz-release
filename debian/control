@@ -1,0 +1,12 @@
+Source: ros-iron-multires-image
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5core5a, libqt5opengl5-dev, qt5-qmake, ros-iron-ament-cmake, ros-iron-cv-bridge, ros-iron-geometry-msgs, ros-iron-gps-msgs, ros-iron-mapviz, ros-iron-pluginlib, ros-iron-rclcpp, ros-iron-swri-math-util, ros-iron-swri-transform-util, ros-iron-tf2, ros-iron-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-iron-multires-image
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-iron-cv-bridge, ros-iron-geometry-msgs, ros-iron-gps-msgs, ros-iron-mapviz, ros-iron-pluginlib, ros-iron-rclcpp, ros-iron-rclpy, ros-iron-swri-math-util, ros-iron-swri-transform-util, ros-iron-tf2, ros-iron-ros-workspace
+Description: multires_image
