@@ -1,0 +1,12 @@
+Source: ros-rolling-mapviz
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt5-qmake, ros-rolling-ament-cmake, ros-rolling-cv-bridge, ros-rolling-geometry-msgs, ros-rolling-image-transport, ros-rolling-mapviz-interfaces, ros-rolling-marti-common-msgs, ros-rolling-pluginlib, ros-rolling-rclcpp, ros-rolling-ros-environment, ros-rolling-rqt-gui, ros-rolling-rqt-gui-cpp, ros-rolling-std-srvs, ros-rolling-swri-math-util, ros-rolling-swri-transform-util, ros-rolling-tf2, ros-rolling-tf2-geometry-msgs, ros-rolling-tf2-ros, ros-rolling-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-rolling-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5a, libqt5opengl5, libxi-dev, libxmu-dev, libyaml-cpp-dev, ros-rolling-cv-bridge, ros-rolling-geometry-msgs, ros-rolling-image-transport, ros-rolling-mapviz-interfaces, ros-rolling-marti-common-msgs, ros-rolling-pluginlib, ros-rolling-rclcpp, ros-rolling-rqt-gui, ros-rolling-rqt-gui-cpp, ros-rolling-std-srvs, ros-rolling-swri-math-util, ros-rolling-swri-transform-util, ros-rolling-tf2, ros-rolling-tf2-geometry-msgs, ros-rolling-tf2-ros, ros-rolling-ros-workspace
+Description: mapviz
