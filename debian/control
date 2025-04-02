@@ -1,0 +1,12 @@
+Source: ros-rolling-mapviz-plugins
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libqt5core5a, libqt5opengl5-dev, qt5-qmake, ros-rolling-ament-cmake, ros-rolling-ament-index-cpp, ros-rolling-cv-bridge, ros-rolling-gps-msgs, ros-rolling-image-transport, ros-rolling-map-msgs, ros-rolling-mapviz, ros-rolling-marti-common-msgs, ros-rolling-marti-nav-msgs, ros-rolling-marti-sensor-msgs, ros-rolling-marti-visualization-msgs, ros-rolling-nav-msgs, ros-rolling-pluginlib, ros-rolling-rclcpp, ros-rolling-rclcpp-action, ros-rolling-ros-environment, ros-rolling-sensor-msgs, ros-rolling-std-msgs, ros-rolling-stereo-msgs, ros-rolling-swri-image-util, ros-rolling-swri-math-util, ros-rolling-swri-route-util, ros-rolling-swri-transform-util, ros-rolling-tf2, ros-rolling-visualization-msgs, ros-rolling-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-rolling-mapviz-plugins
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5opengl5, ros-rolling-ament-index-cpp, ros-rolling-cv-bridge, ros-rolling-gps-msgs, ros-rolling-image-transport, ros-rolling-map-msgs, ros-rolling-mapviz, ros-rolling-marti-common-msgs, ros-rolling-marti-nav-msgs, ros-rolling-marti-sensor-msgs, ros-rolling-marti-visualization-msgs, ros-rolling-nav-msgs, ros-rolling-pluginlib, ros-rolling-rclcpp, ros-rolling-rclcpp-action, ros-rolling-sensor-msgs, ros-rolling-std-msgs, ros-rolling-stereo-msgs, ros-rolling-swri-image-util, ros-rolling-swri-math-util, ros-rolling-swri-route-util, ros-rolling-swri-transform-util, ros-rolling-tf2, ros-rolling-visualization-msgs, ros-rolling-ros-workspace
+Description: Common plugins for the Mapviz visualization tool
