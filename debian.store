@@ -1,1 +1,1 @@
-{"base": "aff8b307", "parent": "debian/rolling/mapviz_plugins", "previous": "3a3256e0", "trim": "", "trimbase": ""}
+{"base": "6a08cf81729e", "parent": "debian/kilted/mapviz_plugins", "previous": "541286b9e795", "trim": "", "trimbase": ""}
