@@ -1,0 +1,12 @@
+Source: ros-kilted-mapviz
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), freeglut3-dev, libglew-dev, libqt5core5t64, libqt5opengl5-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt5-qmake, ros-kilted-ament-cmake, ros-kilted-cv-bridge, ros-kilted-geometry-msgs, ros-kilted-image-transport, ros-kilted-mapviz-interfaces, ros-kilted-marti-common-msgs, ros-kilted-pluginlib, ros-kilted-rclcpp, ros-kilted-ros-environment, ros-kilted-rqt-gui, ros-kilted-rqt-gui-cpp, ros-kilted-std-srvs, ros-kilted-swri-math-util, ros-kilted-swri-transform-util, ros-kilted-tf2, ros-kilted-tf2-geometry-msgs, ros-kilted-tf2-ros, ros-kilted-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-kilted-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, freeglut3-dev, libglew-dev, libqt5core5t64, libqt5opengl5, libxi-dev, libxmu-dev, libyaml-cpp-dev, ros-kilted-cv-bridge, ros-kilted-geometry-msgs, ros-kilted-image-transport, ros-kilted-mapviz-interfaces, ros-kilted-marti-common-msgs, ros-kilted-pluginlib, ros-kilted-rclcpp, ros-kilted-rqt-gui, ros-kilted-rqt-gui-cpp, ros-kilted-std-srvs, ros-kilted-swri-math-util, ros-kilted-swri-transform-util, ros-kilted-tf2, ros-kilted-tf2-geometry-msgs, ros-kilted-tf2-ros, ros-kilted-ros-workspace
+Description: mapviz
