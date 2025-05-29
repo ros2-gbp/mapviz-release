@@ -224,11 +224,11 @@ tracks:
     patches: null
     release_inc: '1'
     release_repo_url: null
-    release_tag: 2.4.8
+    release_tag: 2.5.0
     ros_distro: kilted
     vcs_type: git
     vcs_uri: https://github.com/swri-robotics/mapviz.git
-    version: 2.4.8
+    version: 2.5.0
   kinetic:
     actions:
     - bloom-export-upstream :{vcs_local_uri} :{vcs_type} --tag :{release_tag} --display-uri
