@@ -2,6 +2,9 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.5.1 (2025-05-30)
+------------------
+
 2.5.0 (2025-05-29)
 ------------------
 * Correct CMake Export (`#842 <https://github.com/swri-robotics/mapviz/issues/842>`_)
