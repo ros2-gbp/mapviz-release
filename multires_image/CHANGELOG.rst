@@ -2,6 +2,9 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.5.9 (2025-08-27)
+------------------
+
 2.5.8 (2025-07-16)
 ------------------
 * Updating to use new recursive mutex type (`#855 <https://github.com/swri-robotics/mapviz/issues/855>`_)
