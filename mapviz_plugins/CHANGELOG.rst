@@ -2,6 +2,9 @@
 Changelog for package mapviz_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.5.10 (2025-09-04)
+-------------------
+
 2.5.9 (2025-08-27)
 ------------------
 * Add error status for navsatfix uninitialized origin (`#860 <https://github.com/swri-robotics/mapviz/issues/860>`_)
