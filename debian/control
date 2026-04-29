@@ -1,0 +1,12 @@
+Source: ros-lyrical-mapviz-plugins
+Section: misc
+Priority: optional
+Maintainer: Southwest Research Institute <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libopencv-dev, libqt5core5t64, libqt5opengl5-dev, qt5-qmake, ros-lyrical-ament-cmake, ros-lyrical-ament-index-cpp, ros-lyrical-cv-bridge, ros-lyrical-geometry-msgs, ros-lyrical-gps-msgs, ros-lyrical-image-transport, ros-lyrical-map-msgs, ros-lyrical-mapviz, ros-lyrical-marti-common-msgs, ros-lyrical-marti-nav-msgs, ros-lyrical-marti-sensor-msgs, ros-lyrical-marti-visualization-msgs, ros-lyrical-nav-msgs, ros-lyrical-pluginlib, ros-lyrical-rclcpp, ros-lyrical-rclcpp-action, ros-lyrical-ros-environment, ros-lyrical-sensor-msgs, ros-lyrical-std-msgs, ros-lyrical-std-srvs, ros-lyrical-stereo-msgs, ros-lyrical-swri-image-util, ros-lyrical-swri-math-util, ros-lyrical-swri-route-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-visualization-msgs, ros-lyrical-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-lyrical-mapviz-plugins
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libopencv-dev, libqt5core5t64, libqt5opengl5t64, ros-lyrical-ament-index-cpp, ros-lyrical-cv-bridge, ros-lyrical-geometry-msgs, ros-lyrical-gps-msgs, ros-lyrical-image-transport, ros-lyrical-map-msgs, ros-lyrical-mapviz, ros-lyrical-marti-common-msgs, ros-lyrical-marti-nav-msgs, ros-lyrical-marti-sensor-msgs, ros-lyrical-marti-visualization-msgs, ros-lyrical-nav-msgs, ros-lyrical-pluginlib, ros-lyrical-rclcpp, ros-lyrical-rclcpp-action, ros-lyrical-sensor-msgs, ros-lyrical-std-msgs, ros-lyrical-std-srvs, ros-lyrical-stereo-msgs, ros-lyrical-swri-image-util, ros-lyrical-swri-math-util, ros-lyrical-swri-route-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-visualization-msgs, ros-lyrical-ros-workspace
+Description: Common plugins for the Mapviz visualization tool
