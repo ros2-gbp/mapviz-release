@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2017, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,46 +27,45 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__RQT_MAPVIZ_H_
-#define MAPVIZ__RQT_MAPVIZ_H_
+#ifndef MAPVIZ__VIDEO_WRITER_HPP_
+#define MAPVIZ__VIDEO_WRITER_HPP_
 
-/*
- * The RQT GUI CPP files use the Qt macros "slots" and "signals".  These conflict
- * with Boost macros of the same name; normally we fix this by adding "-DQT_NO_KEYWORDS"
- * in our CMakeLists file, then using Q_SLOTS and Q_SIGNALS in our source code instead.
- * Since we can't edit the ROS source code, though, we need to define those macros before
- * we include the ROS headers and then undefine them afterwards.
- */
-#define slots
-#define signals
-#if __has_include(<rqt_gui_cpp/plugin.h>)
-#include <rqt_gui_cpp/plugin.h>
-#else
-#include <rqt_gui_cpp/plugin.hpp>
+#include <QImage>
+#include <QObject>
+#include <QRecursiveMutex>
+
+#include <memory>
+#include <string>
+
+#ifndef Q_MOC_RUN
+#include <opencv2/highgui/highgui.hpp>
 #endif
-#undef slots
-#undef signals
-
-#include "mapviz.hpp"
 
 namespace mapviz
 {
-class RqtMapviz : public rqt_gui_cpp::Plugin
+class VideoWriter : public QObject
 {
-Q_OBJECT
-public:
-  RqtMapviz();
-  virtual void initPlugin(qt_gui_cpp::PluginContext& context);
-  virtual void shutdownPlugin();
-  virtual void saveSettings(
-    qt_gui_cpp::Settings& plugin_settings,
-    qt_gui_cpp::Settings& instance_settings) const;
-  virtual void restoreSettings(
-    const qt_gui_cpp::Settings& plugin_settings,
-    const qt_gui_cpp::Settings& instance_settings);
-private:
-  Mapviz* widget_;
-};
-}   // namespace mapviz
+  Q_OBJECT
 
-#endif  // MAPVIZ__RQT_MAPVIZ_H_
+public:
+  VideoWriter() :
+    height_(0),
+    width_(0)
+  {}
+
+  bool initializeWriter(const std::string& directory, int width, int height);
+  bool isRecording();
+  void stop();
+
+public Q_SLOTS:
+  void processFrame(QImage frame);
+
+private:
+  int height_;
+  int width_;
+  QRecursiveMutex video_mutex_;
+  std::shared_ptr<cv::VideoWriter> video_writer_;
+};
+}  // namespace mapviz
+
+#endif  // MAPVIZ__VIDEO_WRITER_HPP_
