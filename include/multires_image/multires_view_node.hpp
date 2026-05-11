@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_MULTIRES_VIEW_NODE_H_
-#define MULTIRES_IMAGE_MULTIRES_VIEW_NODE_H_
+#ifndef MULTIRES_IMAGE_MULTIRES_VIEW_NODE_HPP_
+#define MULTIRES_IMAGE_MULTIRES_VIEW_NODE_HPP_
 
 // C++ standard libraries
 #include <string>
@@ -43,8 +43,8 @@
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
 
-#include <multires_image/QGLMap.h>
-#include <multires_image/tile_set.h>
+#include <multires_image/QGLMap.hpp>
+#include <multires_image/tile_set.hpp>
 
 namespace multires_image
 {
@@ -79,4 +79,4 @@ namespace multires_image
   };
 }
 
-#endif  // MULTIRES_IMAGE_MULTIRES_VIEW_NODE_H_
+#endif  // MULTIRES_IMAGE_MULTIRES_VIEW_NODE_HPP_
