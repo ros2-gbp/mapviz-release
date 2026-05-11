@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2015, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,89 +27,56 @@
 //
 // *****************************************************************************
 
-#ifndef TILE_MAP_TILE_MAP_VIEW_H_
-#define TILE_MAP_TILE_MAP_VIEW_H_
+#ifndef TILE_MAP_TEXTURE_CACHE_HPP_
+#define TILE_MAP_TEXTURE_CACHE_HPP_
 
-#include <string>
-
-#include <tile_map/tile_source.h>
-#include <tile_map/texture_cache.h>
-
-#include <swri_transform_util/transform.h>
+#include <QCache>
+#include <QOpenGLTexture>
 
 #include <rclcpp/logger.hpp>
 
+#include <tile_map/image_cache.hpp>
+
 namespace tile_map
 {
-  class TileSource;
-
-  struct Tile
+  class Texture
   {
   public:
-    QString url;
-    size_t url_hash;
-    int32_t level;
-    int32_t subdiv_count;
-    double subwidth;
+    Texture(std::unique_ptr<QOpenGLTexture> texture, size_t hash);
+    ~Texture();
 
-    TexturePtr texture;
+    const std::unique_ptr<QOpenGLTexture>& GetTexture() const { return texture_; }
+    const size_t url_hash;
 
-    std::vector<tf2::Vector3> points;
-    std::vector<tf2::Vector3> points_t;
+    bool failed;
+
+  private:
+    std::unique_ptr<QOpenGLTexture> texture_;
   };
+  typedef std::shared_ptr<Texture> TexturePtr;
 
-  class TileMapView
+  class TextureCache
   {
   public:
-    explicit TileMapView(rclcpp::Logger logger = rclcpp::get_logger("tile_map::TileMapView"));
+    explicit TextureCache(ImageCachePtr image_cache,
+        size_t size = 512,
+        rclcpp::Logger logger = rclcpp::get_logger("tile_map::TextureCache"));
 
-    bool IsReady();
-
-    void ResetCache();
+    TexturePtr GetTexture(size_t url_hash, const QString& url, bool& failed, int priority);
+    void AddTexture(const TexturePtr& texture);
 
     void SetLogger(rclcpp::Logger logger);
 
-    void SetTileSource(const std::shared_ptr<TileSource>& tile_source);
-
-    void SetTransform(const swri_transform_util::Transform& transform);
-
-    void SetView(
-      double latitude,
-      double longitude,
-      double scale,
-      int32_t width,
-      int32_t height);
-
-    void Draw();
+    void Clear();
 
   private:
-    void DrawTiles(std::vector<Tile> &tiles ,int priority);
+    QCache<size_t, TexturePtr> cache_;
 
-    std::shared_ptr<TileSource> tile_source_;
-
-    swri_transform_util::Transform transform_;
-
-    int32_t level_;
-
-    int64_t center_x_;
-    int64_t center_y_;
-
-    int64_t size_;
-
-    int32_t width_;
-    int32_t height_;
-
-    std::vector<Tile> tiles_;
-    std::vector<Tile> precache_;
-
-    TextureCachePtr tile_cache_;
+    ImageCachePtr image_cache_;
 
     rclcpp::Logger logger_;
-
-    void ToLatLon(int32_t level, double x, double y, double& latitude, double& longitude);
-
-    void InitializeTile(int32_t level, int64_t x, int64_t y, Tile& tile, int priority);
   };
+  typedef std::shared_ptr<TextureCache> TextureCachePtr;
 }
 
-#endif  // TILE_MAP_TILE_MAP_VIEW_H_
+#endif  // TILE_MAP_TEXTURE_CACHE_HPP_
