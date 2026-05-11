@@ -28,17 +28,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  **/ 
 
-#ifndef MAPVIZ_PLUGINS__POSE_PLUGIN_H_
-#define MAPVIZ_PLUGINS__POSE_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__POSE_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__POSE_PLUGIN_HPP_
 
 // Include mapviz_plugin.h first to ensure GL deps are included in the right order
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
-#include <mapviz/map_canvas.h>
-#include <mapviz_plugins/point_drawing_plugin.h>
+#include <mapviz/map_canvas.hpp>
+#include <mapviz_plugins/point_drawing_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
 
@@ -66,7 +66,7 @@ class PosePlugin : public mapviz_plugins::PointDrawingPlugin
     PosePlugin();
     ~PosePlugin() override = default;
 
-    bool Initialize(QGLWidget* canvas) override;
+    bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
     void Draw(double x, double y, double scale) override;
@@ -100,4 +100,4 @@ class PosePlugin : public mapviz_plugins::PointDrawingPlugin
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__POSE_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__POSE_PLUGIN_HPP_

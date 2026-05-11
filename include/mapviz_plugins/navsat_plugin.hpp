@@ -17,15 +17,15 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__NAVSAT_PLUGIN_H_
-#define MAPVIZ_PLUGINS__NAVSAT_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__NAVSAT_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__NAVSAT_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.h>
-#include <mapviz/map_canvas.h>
-#include <mapviz_plugins/point_drawing_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/map_canvas.hpp>
+#include <mapviz_plugins/point_drawing_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
 
@@ -53,7 +53,7 @@ class NavSatPlugin : public mapviz_plugins::PointDrawingPlugin
   NavSatPlugin();
   ~NavSatPlugin() override = default;
 
-  bool Initialize(QGLWidget* canvas) override;
+  bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
   void Draw(double x, double y, double scale) override;
@@ -87,4 +87,4 @@ class NavSatPlugin : public mapviz_plugins::PointDrawingPlugin
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__NAVSAT_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__NAVSAT_PLUGIN_HPP_

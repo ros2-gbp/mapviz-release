@@ -27,17 +27,17 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_H_
-#define MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_HPP_
 
 // Include mapviz_plugin.h first to ensure GL deps are included in the right order
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QTimer>
-#include <mapviz/map_canvas.h>
+#include <mapviz/map_canvas.hpp>
 
-#include <mapviz_plugins/canvas_click_filter.h>
+#include <mapviz_plugins/canvas_click_filter.hpp>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -63,7 +63,7 @@ public:
   PointClickPublisherPlugin();
   ~PointClickPublisherPlugin() override;
 
-  bool Initialize(QGLWidget* canvas) override;
+  bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
   void SetNode(rclcpp::Node& node) override;
@@ -97,4 +97,4 @@ private:
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_HPP_

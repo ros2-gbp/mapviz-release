@@ -27,13 +27,14 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__ROUTE_PLUGIN_H_
-#define MAPVIZ_PLUGINS__ROUTE_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__ROUTE_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__ROUTE_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
 
@@ -41,7 +42,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tf2/transform_datatypes.hpp>
 #include <marti_nav_msgs/msg/route_position.hpp>
-#include <mapviz/map_canvas.h>
+#include <mapviz/map_canvas.hpp>
 #include <swri_route_util/route.h>
 
 // C++ standard libraries
@@ -54,7 +55,7 @@
 
 namespace mapviz_plugins
 {
-class RoutePlugin : public mapviz::MapvizPlugin
+class RoutePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 {
   Q_OBJECT
 
@@ -68,7 +69,7 @@ class RoutePlugin : public mapviz::MapvizPlugin
     RoutePlugin();
     ~RoutePlugin() override = default;
 
-    bool Initialize(QGLWidget* canvas) override;
+    bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
     void Draw(double x, double y, double scale) override;
@@ -121,4 +122,4 @@ class RoutePlugin : public mapviz::MapvizPlugin
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__ROUTE_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__ROUTE_PLUGIN_HPP_

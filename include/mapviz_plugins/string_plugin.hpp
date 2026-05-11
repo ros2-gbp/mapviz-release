@@ -28,17 +28,17 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__STRING_PLUGIN_H_
-#define MAPVIZ_PLUGINS__STRING_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__STRING_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__STRING_PLUGIN_HPP_
 
 
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 #include <QObject>
 #include <QString>
 #include <QColor>
 #include <QWidget>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPainter>
 #include <QFont>
 #include <QStaticText>
@@ -80,7 +80,7 @@ public:
   StringPlugin();
   ~StringPlugin() override = default;
 
-  bool Initialize(QGLWidget* canvas) override;
+  bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
   void Draw(double x, double y, double scale) override;
@@ -151,4 +151,4 @@ private:
 }  // namespace mapviz_plugins
 
 
-#endif   // MAPVIZ_PLUGINS__STRING_PLUGIN_H_
+#endif   // MAPVIZ_PLUGINS__STRING_PLUGIN_HPP_

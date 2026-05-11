@@ -27,14 +27,15 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_H_
-#define MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.h>
-#include <mapviz/map_canvas.h>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/map_canvas.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
 
@@ -50,7 +51,7 @@
 
 namespace mapviz_plugins
 {
-class PointDrawingPlugin : public mapviz::MapvizPlugin
+class PointDrawingPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 {
   Q_OBJECT
 
@@ -140,4 +141,4 @@ class PointDrawingPlugin : public mapviz::MapvizPlugin
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_HPP_

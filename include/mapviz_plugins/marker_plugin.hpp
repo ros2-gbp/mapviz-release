@@ -27,13 +27,14 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__MARKER_PLUGIN_H_
-#define MAPVIZ_PLUGINS__MARKER_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__MARKER_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__MARKER_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 #include <QListWidgetItem>
 
 // ROS libraries
@@ -41,7 +42,7 @@
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
-#include <mapviz/map_canvas.h>
+#include <mapviz/map_canvas.hpp>
 
 // C++ standard libraries
 #include <functional>
@@ -83,7 +84,7 @@ struct MarkerNsHash {
   }
 };
 
-class MarkerPlugin : public mapviz::MapvizPlugin
+class MarkerPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 {
   Q_OBJECT
 
@@ -91,7 +92,7 @@ public:
   MarkerPlugin();
   ~MarkerPlugin() override = default;
 
-  bool Initialize(QGLWidget* canvas) override;
+  bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
   void Draw(double x, double y, double scale) override;
@@ -185,4 +186,4 @@ private:
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__MARKER_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__MARKER_PLUGIN_HPP_

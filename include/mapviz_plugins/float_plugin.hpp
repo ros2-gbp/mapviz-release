@@ -33,13 +33,13 @@
 
 #include <string>
 
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 #include <QObject>
 #include <QString>
 #include <QColor>
 #include <QWidget>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPainter>
 #include <QFont>
 #include <QStaticText>
@@ -82,7 +82,7 @@ namespace mapviz_plugins
     FloatPlugin();
     ~FloatPlugin() override = default;
 
-    bool Initialize(QGLWidget* canvas) override;
+    bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
     void Draw(double x, double y, double scale) override;

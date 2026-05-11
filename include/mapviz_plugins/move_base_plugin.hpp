@@ -27,16 +27,17 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS_PLAN_ROUTE_PLUGIN_H_
-#define MAPVIZ_PLUGINS_PLAN_ROUTE_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS_PLAN_ROUTE_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS_PLAN_ROUTE_PLUGIN_HPP_
 
 // C++ standard libraries
 #include <string>
 #include <vector>
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
 
@@ -45,7 +46,7 @@
 #include <tf/transform_datatypes.hpp>
 
 // Mapviz libraries
-#include <mapviz/map_canvas.h>
+#include <mapviz/map_canvas.hpp>
 
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <move_base_msgs/MoveBaseAction.h>
@@ -56,7 +57,7 @@
 
 namespace mapviz_plugins
 {
-  class MoveBasePlugin : public mapviz::MapvizPlugin
+  class MoveBasePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
   {
     Q_OBJECT
 
@@ -66,7 +67,7 @@ namespace mapviz_plugins
     MoveBasePlugin();
     virtual ~MoveBasePlugin();
 
-    bool Initialize(QGLWidget* canvas);
+    bool Initialize(QOpenGLWidget* canvas);
     void Shutdown() {}
 
     void Draw(double x, double y, double scale);
@@ -115,4 +116,4 @@ namespace mapviz_plugins
   };
 }
 
-#endif  // MAPVIZ_PLUGINS_PLAN_ROUTE_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS_PLAN_ROUTE_PLUGIN_HPP_

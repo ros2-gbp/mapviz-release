@@ -26,8 +26,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
-#ifndef MAPVIZ_PLUGINS__PLACEABLE_WINDOW_PROXY_H_
-#define MAPVIZ_PLUGINS__PLACEABLE_WINDOW_PROXY_H_
+#ifndef MAPVIZ_PLUGINS__PLACEABLE_WINDOW_PROXY_HPP_
+#define MAPVIZ_PLUGINS__PLACEABLE_WINDOW_PROXY_HPP_
 
 #include <QObject>
 #include <QRect>
@@ -119,4 +119,4 @@ private:
   State getNextState(const QPointF &pt) const;
 };  // class PlaceableWindowProxy
 }  // namespace mapviz_plugins
-#endif  // MAPVIZ_PLUGINS__PLACEABLE_WINDOW_PROXY_H_
+#endif  // MAPVIZ_PLUGINS__PLACEABLE_WINDOW_PROXY_HPP_

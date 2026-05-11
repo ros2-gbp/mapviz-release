@@ -26,8 +26,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
-#ifndef MAPVIZ_PLUGINS__TOPIC_SELECT_H_
-#define MAPVIZ_PLUGINS__TOPIC_SELECT_H_
+#ifndef MAPVIZ_PLUGINS__TOPIC_SELECT_HPP_
+#define MAPVIZ_PLUGINS__TOPIC_SELECT_HPP_
 
 #include <map>
 #include <memory>
@@ -214,4 +214,4 @@ class SelectTopicDialog : public QDialog
 };  // class SelectTopicDialog
 }  // namespace mapviz
 
-#endif  // MAPVIZ_PLUGINS__TOPIC_SELECT_H_
+#endif  // MAPVIZ_PLUGINS__TOPIC_SELECT_HPP_

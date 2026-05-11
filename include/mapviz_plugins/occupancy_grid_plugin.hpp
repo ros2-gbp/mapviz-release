@@ -27,13 +27,15 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_H_
-#define MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_H_
+#ifndef MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_HPP_
+#define MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLTexture>
+#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
 #include <QTimer>
@@ -42,12 +44,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <tf2/transform_datatypes.hpp>
 
-#include <mapviz/map_canvas.h>
+#include <mapviz/map_canvas.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <map_msgs/msg/occupancy_grid_update.hpp>
 
 // C++ standard libraries
 #include <list>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -56,7 +59,8 @@
 
 namespace mapviz_plugins
 {
-class OccupancyGridPlugin : public mapviz::MapvizPlugin
+class OccupancyGridPlugin : public mapviz::MapvizPlugin,
+                            protected QOpenGLFunctions_1_1
 {
   Q_OBJECT
 
@@ -66,7 +70,7 @@ public:
   OccupancyGridPlugin();
   ~OccupancyGridPlugin() override = default;
 
-  bool Initialize(QGLWidget* canvas) override;
+  bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
   void Draw(double x, double y, double scale) override;
@@ -108,7 +112,7 @@ private:
   rmw_qos_profile_t qos_;
   swri_transform_util::Transform transform_;
 
-  GLuint texture_id_;
+  std::unique_ptr<QOpenGLTexture> texture_;
 
   QPointF map_origin_;
   float texture_x_, texture_y_;
@@ -126,4 +130,4 @@ private:
 };
 }   // namespace mapviz_plugins
 
-#endif  // MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_H_
+#endif  // MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_HPP_
