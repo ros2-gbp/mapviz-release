@@ -27,33 +27,71 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__MAPVIZ_APPLICATION_H_
-#define MAPVIZ__MAPVIZ_APPLICATION_H_
+#ifndef MAPVIZ__CONFIG_ITEM_HPP_
+#define MAPVIZ__CONFIG_ITEM_HPP_
 
-#include <QApplication>
-#include <QEvent>
+// C++ standard libraries
+#include <string>
+#include <vector>
 
-#include <rclcpp/logger.hpp>
+// QT libraries
+#include <QWidget>
+#include <QLabel>
+#include <QMouseEvent>
+#include <QListWidgetItem>
+
+// C++ standard libraries
+#include <string>
+#include <vector>
+
+// Auto-generated UI files
+#include "ui/ui_configitem.h"
 
 namespace mapviz
 {
-/**
- * This class exists solely so that we can override QApplication::notify and
- * log exceptions in the event loop as errors rather than letting them
- * crash the entire program.
- */
-class MapvizApplication : public QApplication
+class ConfigItem : public QWidget
 {
+  Q_OBJECT
+
 public:
-  MapvizApplication(int &argc, char** argv,
-      rclcpp::Logger logger = rclcpp::get_logger("mapviz::MapvizApplication"));
+  explicit ConfigItem(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
+  ~ConfigItem() override = default;
 
-  void setLogger(const rclcpp::Logger& logger);
+  void SetName(QString name);
+  void SetType(QString type);
+  void SetWidget(QWidget* widget);
+
+  void SetListItem(QListWidgetItem* item) { item_ = item; }
+  bool Collapsed() const { return ui_.content->isHidden(); }
+  QString Name() const { return name_; }
+
+  Ui::configitem ui_;
+
+Q_SIGNALS:
+  void UpdateSizeHint();
+  void ToggledDraw(QListWidgetItem* plugin, bool visible);
+  void DuplicateRequest(QListWidgetItem* plugin);
+  void RemoveRequest(QListWidgetItem* plugin);
+
+public Q_SLOTS:
+  void Hide();
+  void EditName();
+  void Duplicate();
+  void Remove();
+  void ToggleDraw(bool toggled);
+
 private:
-  bool notify(QObject* receiver, QEvent* event) override;
+  void contextMenuEvent(QContextMenuEvent *event) override;
 
-  rclcpp::Logger logger_;
+protected:
+  QListWidgetItem* item_;
+  QString name_;
+  QString type_;
+  QAction* edit_name_action_;
+  QAction* duplicate_item_action_;
+  QAction* remove_item_action_;
+  bool visible_;
 };
 }   // namespace mapviz
 
-#endif  // MAPVIZ__MAPVIZ_APPLICATION_H_
+#endif  // MAPVIZ__CONFIG_ITEM_HPP_

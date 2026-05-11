@@ -26,8 +26,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
-#ifndef MAPVIZ__SELECT_FRAME_DIALOG_H_
-#define MAPVIZ__SELECT_FRAME_DIALOG_H_
+#ifndef MAPVIZ__SELECT_FRAME_DIALOG_HPP_
+#define MAPVIZ__SELECT_FRAME_DIALOG_HPP_
 
 #include <tf2_ros/buffer.h>
 
@@ -124,4 +124,4 @@ class SelectFrameDialog : public QDialog
   QLineEdit *name_filter_;
 };  // class SelectFrameDialog
 }  // namespace mapviz
-#endif  // MAPVIZ__SELECT_FRAME_DIALOG_H_
+#endif  // MAPVIZ__SELECT_FRAME_DIALOG_HPP_
