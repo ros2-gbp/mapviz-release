@@ -27,11 +27,12 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__MAP_CANVAS_H_
-#define MAPVIZ__MAP_CANVAS_H_
+#ifndef MAPVIZ__MAP_CANVAS_HPP_
+#define MAPVIZ__MAP_CANVAS_HPP_
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_5>
+#include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QColor>
@@ -43,7 +44,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/transform_listener.h>
 
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz/mapviz_plugin.hpp>
 
 // C++ standard libraries
 #include <cstring>
@@ -54,7 +55,7 @@
 
 namespace mapviz
 {
-class MapCanvas : public QGLWidget
+class MapCanvas : public QOpenGLWidget, protected QOpenGLFunctions_1_5
 {
   Q_OBJECT
 
@@ -169,10 +170,11 @@ public Q_SLOTS:
 protected:
   void initializeGL() override;
   void initGlBlending();
+  void applyAntialiasingState();
   void pushGlMatrices();
   void popGlMatrices();
   void resizeGL(int w, int h) override;
-  void paintEvent(QPaintEvent* event) override;
+  void paintGL() override;
   void wheelEvent(QWheelEvent* e) override;
   void mousePressEvent(QMouseEvent* e) override;
   void mouseReleaseEvent(QMouseEvent* e) override;
@@ -251,4 +253,4 @@ protected:
 };
 }   // namespace mapviz
 
-#endif  // MAPVIZ__MAP_CANVAS_H_
+#endif  // MAPVIZ__MAP_CANVAS_HPP_
