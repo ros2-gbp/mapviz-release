@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#ifndef TILE_MAP_IMAGE_CACHE_H_
-#define TILE_MAP_IMAGE_CACHE_H_
+#ifndef TILE_MAP_IMAGE_CACHE_HPP_
+#define TILE_MAP_IMAGE_CACHE_HPP_
 
 #include <string>
 #include <limits>
@@ -166,4 +166,4 @@ namespace tile_map
   typedef std::shared_ptr<ImageCache> ImageCachePtr;
 }
 
-#endif  // TILE_MAP_IMAGE_CACHE_H_
+#endif  // TILE_MAP_IMAGE_CACHE_HPP_
