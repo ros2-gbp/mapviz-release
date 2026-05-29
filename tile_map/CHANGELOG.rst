@@ -2,13 +2,12 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-3.0.0 (2026-05-10)
+2.6.5 (2026-05-29)
 ------------------
-* Refactor OpenGL Interface (`#871 <https://github.com/swri-robotics/mapviz/issues/871>`_)
-  * Refactoring to use Qt's OpenGL interfaces rather than raw GLEW and GLUT.
-  ---------
-  Co-authored-by: DangitBen <30333928+DangitBen@users.noreply.github.com>
-* Contributors: David Anthony
+* Fix plugin export (`#875 <https://github.com/swri-robotics/mapviz/issues/875>`_)
+  Co-authored-by: Ben Andrew <benjamin.andrew@swri.org>
+  (cherry picked from commit 667d284ac3138bcb726e32cca478a9a768b8dc0c)
+* Contributors: DangitBen, David Anthony
 
 2.6.4 (2026-05-10)
 ------------------

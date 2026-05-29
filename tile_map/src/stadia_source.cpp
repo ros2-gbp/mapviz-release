@@ -28,7 +28,7 @@
 //
 // *****************************************************************************
 
-#include <tile_map/stadia_source.hpp>
+#include <tile_map/stadia_source.h>
 
 namespace tile_map
 {

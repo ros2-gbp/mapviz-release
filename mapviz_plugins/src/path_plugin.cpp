@@ -27,12 +27,12 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/path_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/path_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 // QT libraries
 #include <QDialog>
-#include <QOpenGLWidget>
+#include <QGLWidget>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
@@ -165,12 +165,9 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool PathPlugin::Initialize(QOpenGLWidget* canvas)
+  bool PathPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
     DrawIcon();
     return true;
   }

@@ -28,8 +28,8 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/string_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/string_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 #include <QFontDialog>
 #include <QFontDatabase>
@@ -92,7 +92,7 @@ namespace mapviz_plugins
     ui_.color->setColor(color_);
   }
 
-  bool StringPlugin::Initialize(QOpenGLWidget* canvas)
+  bool StringPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
     return true;

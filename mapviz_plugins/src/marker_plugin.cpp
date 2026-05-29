@@ -28,8 +28,8 @@
 // *****************************************************************************
 
 #include <algorithm>
-#include <mapviz_plugins/marker_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/marker_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 #include <swri_math_util/constants.h>
 
@@ -442,12 +442,9 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool MarkerPlugin::Initialize(QOpenGLWidget* canvas)
+  bool MarkerPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
 
     return true;
   }

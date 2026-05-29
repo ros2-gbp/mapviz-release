@@ -41,7 +41,6 @@
 #include <QListWidgetItem>
 #include <QModelIndex>
 #include <QColor>
-#include <QToolButton>
 #include <QWidget>
 #include <QStringList>
 #include <QMainWindow>
@@ -49,9 +48,9 @@
 
 #include <swri_transform_util/transform_manager.h>
 #include <mapviz_interfaces/srv/add_mapviz_display.hpp>  // Service
-#include <mapviz/mapviz_plugin.hpp>
-#include <mapviz/map_canvas.hpp>
-#include <mapviz/video_writer.hpp>
+#include <mapviz/mapviz_plugin.h>
+#include <mapviz/map_canvas.h>
+#include <mapviz/video_writer.h>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
@@ -68,11 +67,11 @@
 #include <memory>
 
 // Auto-generated UI files
-#include "ui/ui_mapviz.h"
-#include "ui/ui_pluginselect.h"
+#include "ui_mapviz.h"
+#include "ui_pluginselect.h"
 
 
-#include "mapviz/stopwatch.hpp"
+#include "mapviz/stopwatch.h"
 
 namespace mapviz
 {
@@ -112,7 +111,6 @@ public Q_SLOTS:
   void SpinOnce();
   void UpdateSizeHints();
   void ToggleConfigPanel(bool on);
-  void TogglePinConfigPanel(bool pinned);
   void ToggleStatusBar(bool on);
   void ToggleCaptureTools(bool on);
   void ToggleFixOrientation(bool on);
@@ -167,7 +165,6 @@ protected:
 
   virtual void showEvent(QShowEvent* event);
   virtual void closeEvent(QCloseEvent* event);
-  bool eventFilter(QObject* object, QEvent* event) override;
 
   static const QString ROS_WORKSPACE_VAR;
   static const QString MAPVIZ_CONFIG_FILE;
@@ -219,12 +216,6 @@ protected:
   pluginlib::ClassLoader<MapvizPlugin>* loader_;
   MapCanvas* canvas_;
   std::map<QListWidgetItem*, MapvizPluginPtr> plugins_;
-
-  // Config dock pin/auto-hide
-  QToolButton* pin_button_ = nullptr;
-  QLabel* title_label_ = nullptr;
-  QWidget* collapsed_label_ = nullptr;
-  bool config_panel_pinned_ = false;
 
   Stopwatch meas_spin_;
 };

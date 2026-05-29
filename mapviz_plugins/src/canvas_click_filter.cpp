@@ -30,7 +30,7 @@
 #include <QMouseEvent>
 #include <QLineF>
 #include <QDateTime>
-#include "mapviz_plugins/canvas_click_filter.hpp"
+#include "mapviz_plugins/canvas_click_filter.h"
 
 namespace mapviz_plugins
 {

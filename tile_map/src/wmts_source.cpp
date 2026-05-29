@@ -28,7 +28,7 @@
 //
 // *****************************************************************************
 
-#include <tile_map/wmts_source.hpp>
+#include <tile_map/wmts_source.h>
 
 namespace tile_map
 {

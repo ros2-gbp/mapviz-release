@@ -27,7 +27,7 @@
 //
 // *****************************************************************************
 
-#include <multires_image/tile_cache.hpp>
+#include <multires_image/tile_cache.h>
 
 // C++ standard libraries
 #include <cstdlib>
@@ -39,11 +39,11 @@
 #include <QApplication>
 #include <QEvent>
 
-#include <multires_image/tile_set_layer.hpp>
+#include <multires_image/tile_set_layer.h>
 
 namespace multires_image
 {
-  TileCache::TileCache(TileSet* tileSet, QOpenGLWidget* widget)
+  TileCache::TileCache(TileSet* tileSet, QGLWidget* widget)
   : QObject()
   , m_tileSet(tileSet)
   , m_widget(widget)

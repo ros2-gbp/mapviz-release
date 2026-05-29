@@ -27,7 +27,7 @@
 //
 // *****************************************************************************
 
-#include <tile_map/image_cache.hpp>
+#include <tile_map/image_cache.h>
 
 #include <QtAlgorithms>
 #include <QByteArray>

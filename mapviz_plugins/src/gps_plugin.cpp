@@ -17,12 +17,12 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/gps_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/gps_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 // QT libraries
 #include <QDialog>
-#include <QOpenGLWidget>
+#include <QGLWidget>
 #include <QPalette>
 
 #include <opencv2/core/core.hpp>
@@ -188,12 +188,9 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool GpsPlugin::Initialize(QOpenGLWidget* canvas)
+  bool GpsPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
     SetColor(ui_.color->color());
 
     return true;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>QGLMapClass</class>
- <widget class="QOpenGLWidget" name="QGLMapClass">
+ <widget class="QGLWidget" name="QGLMapClass">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -17,9 +17,9 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-    <class>QOpenGLWidget</class>
+   <class>QGLWidget</class>
    <extends>QWidget</extends>
-    <header>qopenglwidget.h</header>
+   <header>qglwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

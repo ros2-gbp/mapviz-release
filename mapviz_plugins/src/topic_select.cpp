@@ -43,7 +43,7 @@
 
 #include <rmw/qos_profiles.h>
 
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/topic_select.h>
 
 namespace mapviz_plugins
 {

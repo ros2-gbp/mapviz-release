@@ -27,7 +27,7 @@
 //
 // *****************************************************************************
 
-#include <multires_image/tile_view.hpp>
+#include <multires_image/tile_view.h>
 
 // C++ standard libraries
 #include <cmath>
@@ -35,7 +35,7 @@
 
 namespace multires_image
 {
-  TileView::TileView(TileSet* tiles, QOpenGLWidget* widget) :
+  TileView::TileView(TileSet* tiles, QGLWidget* widget) :
       m_tiles(tiles),
       m_cache(tiles, widget),
       m_currentLayer(tiles->LayerCount() - 1),
@@ -110,10 +110,6 @@ namespace multires_image
 
   void TileView::Draw()
   {
-    if (!gl_initialized_) {
-      initializeOpenGLFunctions();
-      gl_initialized_ = true;
-    }
     glEnable(GL_TEXTURE_2D);
 
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);

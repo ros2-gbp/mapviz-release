@@ -27,9 +27,9 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/point_drawing_plugin.hpp>
+#include <mapviz_plugins/point_drawing_plugin.h>
 
-#include <QOpenGLWidget>
+#include <QGLWidget>
 #include <QPalette>
 #include <QPainter>
 

@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/measuring_plugin.hpp>
-#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz_plugins/measuring_plugin.h>
+#include <mapviz/mapviz_plugin.h>
 
 // QT libraries
 #include <QDateTime>
@@ -42,7 +42,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 // Mapviz Libraries
-#include <mapviz/select_frame_dialog.hpp>
+#include <mapviz/select_frame_dialog.h>
 
 #include <pluginlib/class_list_macros.hpp>
 
@@ -113,13 +113,10 @@ QWidget* MeasuringPlugin::GetConfigWidget(QWidget* parent)
   return config_widget_;
 }
 
-bool MeasuringPlugin::Initialize(QOpenGLWidget* canvas)
+bool MeasuringPlugin::Initialize(QGLWidget* canvas)
 {
   map_canvas_ = dynamic_cast<mapviz::MapCanvas*>(canvas);
   map_canvas_->installEventFilter(this);
-  canvas->makeCurrent();
-  initializeOpenGLFunctions();
-  canvas->doneCurrent();
 
   initialized_ = true;
   PrintInfo("OK");

@@ -27,14 +27,14 @@
 //
 // *****************************************************************************
 
-#include <multires_image/multires_image_plugin.hpp>
+#include <multires_image/multires_image_plugin.h>
 
 // C++ standard libraries
 #include <cstdio>
 
 // QT libraries
 #include <QFileDialog>
-#include <QOpenGLWidget>
+#include <QGLWidget>
 #include <QPalette>
 
 // ROS libraries
@@ -200,7 +200,7 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool MultiresImagePlugin::Initialize(QOpenGLWidget* canvas)
+  bool MultiresImagePlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
 

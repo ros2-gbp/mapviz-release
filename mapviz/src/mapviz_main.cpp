@@ -28,7 +28,8 @@
 // *****************************************************************************
 
 #include "mapviz/mapviz.hpp"
-#include "mapviz/mapviz_application.hpp"
+#include "mapviz/mapviz_application.h"
+#include <GL/glut.h>
 
 int main(int argc, char **argv)
 {
@@ -40,6 +41,9 @@ int main(int argc, char **argv)
 
   // Initialize QT
   mapviz::MapvizApplication app(argc, argv);
+
+  // Initialize glut (for displaying text)
+  glutInit(&argc, argv);
 
   // Start mapviz
   mapviz::Mapviz mapviz(true, argc, argv);

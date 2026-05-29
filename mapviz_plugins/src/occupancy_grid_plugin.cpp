@@ -27,11 +27,13 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/occupancy_grid_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <GL/glew.h>
+
+#include <mapviz_plugins/occupancy_grid_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 // QT libraries
-#include <QOpenGLWidget>
+#include <QGLWidget>
 #include <QPalette>
 
 // Declare plugin
@@ -148,7 +150,7 @@ namespace mapviz_plugins
     ui_(),
     config_widget_(new QWidget()),
     transformed_(false),
-    texture_(nullptr),
+    texture_id_(0),
     texture_x_(0.0),
     texture_y_(0.0),
     texture_size_(0),
@@ -336,41 +338,50 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool OccupancyGridPlugin::Initialize(QOpenGLWidget* canvas)
+  bool OccupancyGridPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
     DrawIcon();
     return true;
   }
 
   void OccupancyGridPlugin::updateTexture()
   {
-    if (canvas_ == nullptr) {
-      return;
+    if (texture_id_ != -1)
+    {
+      glDeleteTextures(1, &texture_id_);
     }
 
-    canvas_->makeCurrent();
+    // Get a new texture id.
+    glGenTextures(1, &texture_id_);
 
-    texture_.reset();
+    // Bind the texture with the correct size and null memory.
+    glBindTexture(GL_TEXTURE_2D, texture_id_);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-    texture_ = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
-    texture_->setFormat(QOpenGLTexture::RGBA8_UNorm);
-    texture_->setSize(static_cast<int>(texture_size_), static_cast<int>(texture_size_));
-    texture_->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8);
-    texture_->setMinificationFilter(QOpenGLTexture::Nearest);
-    texture_->setMagnificationFilter(QOpenGLTexture::Nearest);
-    texture_->setWrapMode(QOpenGLTexture::ClampToEdge);
-    texture_->setData(
-      QOpenGLTexture::RGBA,
-      QOpenGLTexture::UInt8,
-      static_cast<const void*>(color_buffer_.data()));
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
+    glTexImage2D(
+          GL_TEXTURE_2D,
+          0,
+          GL_RGBA,
+          texture_size_,
+          texture_size_,
+          0,
+          GL_RGBA,
+          GL_UNSIGNED_BYTE,
+          color_buffer_.data());
+
+    glBindTexture(GL_TEXTURE_2D, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    canvas_->doneCurrent();
   }
+
 
   void OccupancyGridPlugin::Callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
   {
@@ -449,8 +460,8 @@ namespace mapviz_plugins
     {
       double resolution = grid_->info.resolution;
       glTranslatef( transform_.GetOrigin().getX(),
-                        transform_.GetOrigin().getY(),
-                        0.0);
+                    transform_.GetOrigin().getY(),
+                    0.0);
 
       const double RAD_TO_DEG = 180.0 / M_PI;
 
@@ -463,8 +474,8 @@ namespace mapviz_plugins
       glRotatef(yaw   * RAD_TO_DEG, 0, 0, 1);
 
       glTranslatef( grid_->info.origin.position.x,
-            grid_->info.origin.position.y,
-            0.0);
+                    grid_->info.origin.position.y,
+                    0.0);
 
       glScalef( resolution, resolution, 1.0);
 
@@ -472,9 +483,7 @@ namespace mapviz_plugins
       float height = static_cast<float>(grid_->info.height);
 
       glEnable(GL_TEXTURE_2D);
-      if (texture_) {
-        texture_->bind();
-      }
+      glBindTexture(GL_TEXTURE_2D, texture_id_);
       glBegin(GL_TRIANGLES);
 
       glColor4f(1.0f, 1.0f, 1.0f, ui_.alpha->value() );
@@ -495,9 +504,7 @@ namespace mapviz_plugins
 
       glEnd();
 
-      if (texture_) {
-        texture_->release();
-      }
+      glBindTexture(GL_TEXTURE_2D, 0);
       glDisable(GL_TEXTURE_2D);
     }
     glPopMatrix();

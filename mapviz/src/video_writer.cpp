@@ -27,7 +27,7 @@
 //
 // *****************************************************************************
 
-#include <mapviz/video_writer.hpp>
+#include <mapviz/video_writer.h>
 
 #include <rclcpp/rclcpp.hpp>
 

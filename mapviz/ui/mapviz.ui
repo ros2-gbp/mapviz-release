@@ -497,12 +497,12 @@
   <customwidget>
    <class>mapviz::PluginConfigList</class>
    <extends>QListWidget</extends>
-   <header>mapviz/widgets.hpp</header>
+   <header>mapviz/widgets.h</header>
   </customwidget>
   <customwidget>
    <class>mapviz::ColorButton</class>
    <extends>QPushButton</extends>
-   <header location="global">mapviz/color_button.hpp</header>
+   <header location="global">mapviz/color_button.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

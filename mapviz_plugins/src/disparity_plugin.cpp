@@ -27,12 +27,12 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/disparity_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/disparity_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 // QT libraries
 #include <QDialog>
-#include <QOpenGLWidget>
+#include <QGLWidget>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
@@ -306,12 +306,9 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool DisparityPlugin::Initialize(QOpenGLWidget* canvas)
+  bool DisparityPlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
 
     return true;
   }

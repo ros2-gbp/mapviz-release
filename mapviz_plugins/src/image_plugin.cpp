@@ -27,12 +27,12 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/image_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/image_plugin.h>
+#include <mapviz_plugins/topic_select.h>
 
 // QT libraries
 #include <QDialog>
-#include <QOpenGLWidget>
+#include <QGLWidget>
 
 // ROS libraries
 #include <sensor_msgs/image_encodings.hpp>
@@ -409,12 +409,9 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool ImagePlugin::Initialize(QOpenGLWidget* canvas)
+  bool ImagePlugin::Initialize(QGLWidget* canvas)
   {
     canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
 
     return true;
   }
