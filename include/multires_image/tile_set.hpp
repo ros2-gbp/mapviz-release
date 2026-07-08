@@ -27,42 +27,52 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_PLUGINS_MULTIRES_VIEW_H_
-#define MAPVIZ_PLUGINS_MULTIRES_VIEW_H_
+#ifndef MULTIRES_IMAGE_TILE_SET_HPP_
+#define MULTIRES_IMAGE_TILE_SET_HPP_
 
-// QT libraries
-#include <QGLWidget>
+// C++ standard libraries
+#include <string>
+#include <vector>
 
-#include <multires_image/tile_set.h>
-#include <multires_image/tile_cache.h>
+#include <swri_transform_util/georeference.h>
 
-namespace mapviz_plugins
+#include <multires_image/tile_set_layer.hpp>
+
+namespace multires_image
 {
-class MultiresView
-{
+  class TileSet
+  {
   public:
-    MultiresView(multires_image::TileSet* tiles, QGLWidget* widget);
-    ~MultiresView() = default;
+    explicit TileSet(const std::string& geofile);
+    TileSet(const std::string& geofile, const std::string extension);
+    explicit TileSet(const swri_transform_util::GeoReference& georeference);
+    TileSet(const swri_transform_util::GeoReference& georeference,
+            const std::string extension);
 
-    const multires_image::TileCache* Cache() { return &m_cache; }
+    ~TileSet();
 
-    void SetView(double x, double y, double radius, double scale);
+    bool Load();
 
-    void Draw();
+    int LayerCount() { return m_layerCount; }
+    int TileSize() { return m_tileSize; }
 
-    void Exit() { m_cache.Exit(); }
+    swri_transform_util::GeoReference& GeoReference() { return m_geo; }
+
+    TileSetLayer* GetLayer(int layer) { return m_layers[layer]; }
 
   private:
-    multires_image::TileSet*   m_tiles;
-    multires_image::TileCache  m_cache;
-    int        m_currentLayer;
-    int        m_startRow;
-    int        m_startColumn;
-    int        m_endRow;
-    int        m_endColumn;
+    swri_transform_util::GeoReference  m_geo;
+    int                           m_tileSize{};
+    int                           m_width{};
+    int                           m_height{};
 
-    double min_scale_;
+    std::string                   m_cacheDir;
+    std::string                   m_extension;
+
+    int                           m_layerCount{};
+
+    std::vector<TileSetLayer*>    m_layers;
   };
 }
 
-#endif  // MAPVIZ_PLUGINS_MULTIRES_VIEW_H_
+#endif  // MULTIRES_IMAGE_TILE_SET_HPP_
