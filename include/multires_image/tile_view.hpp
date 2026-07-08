@@ -27,61 +27,43 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_TILE_SET_LAYER_H_
-#define MULTIRES_IMAGE_TILE_SET_LAYER_H_
+#ifndef MULTIRES_IMAGE_TILE_VIEW_HPP_
+#define MULTIRES_IMAGE_TILE_VIEW_HPP_
 
-// C++ standard libraries
-#include <string>
-#include <vector>
+// QT libraries
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 
-#include <tf2/transform_datatypes.hpp>
-
-#include <swri_transform_util/georeference.h>
-
-#include <multires_image/tile.h>
+#include <multires_image/tile_set.hpp>
+#include <multires_image/tile_cache.hpp>
 
 namespace multires_image
 {
-  class TileSetLayer
+  class TileView : protected QOpenGLFunctions_1_1
   {
   public:
-    TileSetLayer(
-      const swri_transform_util::GeoReference& geo,
-      const std::string& path,
-      int tileSize, int layer);
+    TileView(TileSet* tiles, QOpenGLWidget* widget);
+    ~TileView() = default;
 
-    ~TileSetLayer() = default;
+    const TileCache* Cache() { return &m_cache; }
 
-    bool Load();
-    bool Load(const std::string extension);
+    void SetView(double x, double y, double radius, double scale);
 
-    Tile* GetTile(int column, int row) { return m_tiles[column][row]; }
+    void Draw();
 
-    void GetTileIndex(const tf2::Vector3& position, int& row, int& column) const;
-    void GetTileIndex(double x, double y, int& row, int& column) const;
-    void GetTileRange(
-      const tf2::Vector3& top_left,
-      const tf2::Vector3& bottom_right,
-      int& startRow, int& startColumn,
-      int& endRow, int& endColumn) const;
-
-    int RowCount() { return m_rows; }
-    int ColumnCount() { return m_columns; }
+    void Exit() { m_cache.Exit(); }
 
   private:
-    const swri_transform_util::GeoReference& m_geo;
-    const std::string      m_path;
-    const int              m_tileSize;
-    const int              m_layer;
-    const double           m_scale;
-
-    bool                   m_expectTiles;
-
-    int                    m_columns;
-    int                    m_rows;
-
-    std::vector<std::vector<Tile*> > m_tiles;
+    TileSet*   m_tiles;
+    TileCache  m_cache;
+    int        m_currentLayer;
+    int        m_startRow;
+    int        m_startColumn;
+    int        m_endRow;
+    int        m_endColumn;
+    double     min_scale_;
+    bool       gl_initialized_ = false;
   };
 }
 
-#endif  // MULTIRES_IMAGE_TILE_SET_LAYER_H_
+#endif  // MULTIRES_IMAGE_TILE_VIEW_HPP_
