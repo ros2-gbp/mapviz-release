@@ -27,9 +27,10 @@
 //
 // *****************************************************************************
 
-#include <mapviz/config_item.h>
+#include <mapviz/config_item.hpp>
 #include <QMenu>
 #include <QAction>
+#include <QFontMetrics>
 #include <QInputDialog>
 
 namespace mapviz
@@ -46,8 +47,11 @@ namespace mapviz
     remove_item_action_ = new QAction("Remove", this);
     remove_item_action_->setIcon(QIcon(":/images/remove-icon-th.png"));
     remove_item_action_->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_X));
+    duplicate_item_action_ = new QAction("Duplicate", this);
+    duplicate_item_action_->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_D));
 
     connect(edit_name_action_, SIGNAL(triggered()), this, SLOT(EditName()));
+    connect(duplicate_item_action_, SIGNAL(triggered()), this, SLOT(Duplicate()));
     connect(remove_item_action_, SIGNAL(triggered()), this, SLOT(Remove()));
   }
 
@@ -67,6 +71,7 @@ namespace mapviz
   {
     QMenu menu(this);
     menu.addAction(edit_name_action_);
+    menu.addAction(duplicate_item_action_);
     menu.addAction(remove_item_action_);
     menu.exec(event->globalPos());
   }
@@ -74,13 +79,31 @@ namespace mapviz
   void ConfigItem::SetName(QString name)
   {
     name_ = name;
-    ui_.namelabel->setText(type_ + " (" + name_ + ")");
+    full_label_text_ = type_ + " (" + name_ + ")";
+    updateNameLabel();
   }
 
   void ConfigItem::SetType(QString type)
   {
     type_ = type;
-    ui_.namelabel->setText(type_ + " (" + name_ + ")");
+    full_label_text_ = type_ + " (" + name_ + ")";
+    updateNameLabel();
+  }
+
+  void ConfigItem::resizeEvent(QResizeEvent* event)
+  {
+    QWidget::resizeEvent(event);
+    updateNameLabel();
+  }
+
+  void ConfigItem::updateNameLabel()
+  {
+    if (ui_.namelabel->width() <= 0) {
+      return;
+    }
+    QFontMetrics fm(ui_.namelabel->font());
+    ui_.namelabel->setText(
+        fm.elidedText(full_label_text_, Qt::ElideRight, ui_.namelabel->width()));
   }
 
   void ConfigItem::SetWidget(QWidget* widget)
@@ -102,6 +125,11 @@ namespace mapviz
     if (ok && !text.isEmpty()) {
       SetName(text);
     }
+  }
+
+  void ConfigItem::Duplicate()
+  {
+    Q_EMIT DuplicateRequest(item_);
   }
 
   void ConfigItem::Remove()
