@@ -27,31 +27,31 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__MAPVIZ_PLUGIN_H_
-#define MAPVIZ__MAPVIZ_PLUGIN_H_
+#ifndef MAPVIZ__MAPVIZ_PLUGIN_HPP_
+#define MAPVIZ__MAPVIZ_PLUGIN_HPP_
 
 // ROS libraries
 #include <swri_transform_util/transform.h>
 #include <swri_transform_util/transform_manager.h>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2/transform_datatypes.hpp>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 
-#include <mapviz/widgets.h>
+#include <mapviz/widgets.hpp>
 #include <yaml-cpp/yaml.h>
 
 // QT libraries
 #include <QWidget>
-#include <QGLWidget>
 #include <QObject>
+#include <QOpenGLWidget>
 
 // C++ standard libraries
 #include <memory>
 #include <string>
 
 
-#include "mapviz/stopwatch.h"
+#include "mapviz/stopwatch.hpp"
 
 namespace mapviz
 {
@@ -65,7 +65,7 @@ public:
       std::shared_ptr<tf2_ros::Buffer> tf_buffer,
       std::shared_ptr<tf2_ros::TransformListener> tf_listener,
       swri_transform_util::TransformManagerPtr tf_manager,
-      QGLWidget* canvas)
+      QOpenGLWidget* canvas)
   {
     tf_buf_ = tf_buffer;
     tf_ = tf_listener;
@@ -285,7 +285,7 @@ protected:
   bool initialized_;
   bool visible_;
 
-  QGLWidget* canvas_;
+  QOpenGLWidget* canvas_;
   IconWidget* icon_;
 
   std::shared_ptr<rclcpp::Node> node_;
@@ -303,7 +303,7 @@ protected:
 
   int draw_order_;
 
-  virtual bool Initialize(QGLWidget* canvas) = 0;
+  virtual bool Initialize(QOpenGLWidget* canvas) = 0;
 
   MapvizPlugin() :
     initialized_(false),
@@ -443,5 +443,5 @@ inline void MapvizPlugin::PrintWarningHelper(QLabel *status_label, const std::st
 
 }   // namespace mapviz
 
-#endif  // MAPVIZ__MAPVIZ_PLUGIN_H_
+#endif  // MAPVIZ__MAPVIZ_PLUGIN_HPP_
 
