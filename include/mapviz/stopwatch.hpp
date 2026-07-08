@@ -26,8 +26,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
-#ifndef MAPVIZ__STOPWATCH_H_
-#define MAPVIZ__STOPWATCH_H_
+#ifndef MAPVIZ__STOPWATCH_HPP_
+#define MAPVIZ__STOPWATCH_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -116,4 +116,4 @@ class Stopwatch
 };  // class PluginInstrumentation
 }  // namespace mapviz
 
-#endif  // MAPVIZ__STOPWATCH_H_
+#endif  // MAPVIZ__STOPWATCH_HPP_
