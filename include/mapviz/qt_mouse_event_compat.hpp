@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,75 +27,23 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__CONFIG_ITEM_HPP_
-#define MAPVIZ__CONFIG_ITEM_HPP_
+#ifndef MAPVIZ__QT_MOUSE_EVENT_COMPAT_HPP_
+#define MAPVIZ__QT_MOUSE_EVENT_COMPAT_HPP_
 
-// C++ standard libraries
-#include <string>
-#include <vector>
-
-// QT libraries
-#include <QWidget>
-#include <QLabel>
 #include <QMouseEvent>
-#include <QResizeEvent>
-#include <QListWidgetItem>
-
-// C++ standard libraries
-#include <string>
-#include <vector>
-
-// Auto-generated UI files
-#include "ui/ui_configitem.h"
+#include <QPointF>
+#include <QtGlobal>
 
 namespace mapviz
 {
-class ConfigItem : public QWidget
+inline QPointF MouseEventPosition(const QMouseEvent* event)
 {
-  Q_OBJECT
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  return event->position();
+#else
+  return QPointF(event->x(), event->y());
+#endif
+}
+}  // namespace mapviz
 
-public:
-  explicit ConfigItem(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
-  ~ConfigItem() override = default;
-
-  void SetName(QString name);
-  void SetType(QString type);
-  void SetWidget(QWidget* widget);
-
-  void SetListItem(QListWidgetItem* item) { item_ = item; }
-  bool Collapsed() const { return ui_.content->isHidden(); }
-  QString Name() const { return name_; }
-
-  Ui::configitem ui_;
-
-Q_SIGNALS:
-  void UpdateSizeHint();
-  void ToggledDraw(QListWidgetItem* plugin, bool visible);
-  void DuplicateRequest(QListWidgetItem* plugin);
-  void RemoveRequest(QListWidgetItem* plugin);
-
-public Q_SLOTS:
-  void Hide();
-  void EditName();
-  void Duplicate();
-  void Remove();
-  void ToggleDraw(bool toggled);
-
-private:
-  void contextMenuEvent(QContextMenuEvent *event) override;
-  void resizeEvent(QResizeEvent* event) override;
-  void updateNameLabel();
-
-protected:
-  QListWidgetItem* item_;
-  QString name_;
-  QString type_;
-  QString full_label_text_;
-  QAction* edit_name_action_;
-  QAction* duplicate_item_action_;
-  QAction* remove_item_action_;
-  bool visible_;
-};
-}   // namespace mapviz
-
-#endif  // MAPVIZ__CONFIG_ITEM_HPP_
+#endif  // MAPVIZ__QT_MOUSE_EVENT_COMPAT_HPP_
