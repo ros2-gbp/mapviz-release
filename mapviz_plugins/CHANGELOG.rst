@@ -2,8 +2,26 @@
 Changelog for package mapviz_plugins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.6.5 (2026-05-29)
+3.1.0 (2026-07-08)
 ------------------
+* Dual Support for Qt5 and Qt6 (`#873 <https://github.com/swri-robotics/mapviz/issues/873>`_)
+  Adding support for building against both Qt5 and Qt6
+* Robot Model Plugin (`#882 <https://github.com/swri-robotics/mapviz/issues/882>`_)
+* Adjust UI element size properties to work for higher resolutions/scaling (`#879 <https://github.com/swri-robotics/mapviz/issues/879>`_)
+  * Update button/text/space fields to work better for a variety of display resolutions and scalings
+  * Fix spinboxes for 1080p
+* Contributors: Alex Youngs, David Anthony
+
+3.0.1 (2026-05-27)
+------------------
+
+3.0.0 (2026-05-10)
+------------------
+* Refactor OpenGL Interface (`#871 <https://github.com/swri-robotics/mapviz/issues/871>`_)
+  * Refactoring to use Qt's OpenGL interfaces rather than raw GLEW and GLUT.
+  ---------
+  Co-authored-by: DangitBen <30333928+DangitBen@users.noreply.github.com>
+* Contributors: David Anthony
 
 2.6.4 (2026-05-10)
 ------------------
