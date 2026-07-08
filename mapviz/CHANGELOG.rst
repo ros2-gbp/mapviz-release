@@ -2,6 +2,44 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.1.0 (2026-07-08)
+------------------
+* Dual Support for Qt5 and Qt6 (`#873 <https://github.com/swri-robotics/mapviz/issues/873>`_)
+  Adding support for building against both Qt5 and Qt6
+* Remove config panel pin check (`#883 <https://github.com/swri-robotics/mapviz/issues/883>`_)
+* Add persistent config dock size; Move config toggle button (`#881 <https://github.com/swri-robotics/mapviz/issues/881>`_)
+* Plugin panel eliding (`#880 <https://github.com/swri-robotics/mapviz/issues/880>`_)
+* Adjust UI element size properties to work for higher resolutions/scaling (`#879 <https://github.com/swri-robotics/mapviz/issues/879>`_)
+  * Update button/text/space fields to work better for a variety of display resolutions and scalings
+  * Fix spinboxes for 1080p
+* Contributors: Alex Youngs, David Anthony
+
+3.0.1 (2026-05-27)
+------------------
+* Fix plugin export (`#875 <https://github.com/swri-robotics/mapviz/issues/875>`_)
+  * fix mapviz rqt plugin declaration
+  * make plugin shared lib
+  * add headers to library sources for AUTOMOC
+  also fixed include
+  ---------
+  Co-authored-by: Ben Andrew <benjamin.andrew@swri.org>
+* Upgrade dependencies from Qt5 to Qt6
+* Contributors: DangitBen, David Anthony
+
+3.0.0 (2026-05-10)
+------------------
+* Refactor OpenGL Interface (`#871 <https://github.com/swri-robotics/mapviz/issues/871>`_)
+  * Refactoring to use Qt's OpenGL interfaces rather than raw GLEW and GLUT.
+  ---------
+  Co-authored-by: DangitBen <30333928+DangitBen@users.noreply.github.com>
+* Contributors: David Anthony
+
+2.6.4 (2026-05-10)
+------------------
+* Added duplicate option (`#872 <https://github.com/swri-robotics/mapviz/issues/872>`_)
+  * Added duplicate option to plugin right-click and ctrl+d hotkey for duplicating selected plugins
+* Contributors: Robert Brothers
+
 2.6.3 (2026-04-27)
 ------------------
 * Adding conditional include (`#869 <https://github.com/swri-robotics/mapviz/issues/869>`_)
