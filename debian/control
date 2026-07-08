@@ -1,0 +1,13 @@
+Source: ros-lyrical-tile-map
+Section: misc
+Priority: optional
+Maintainer: "Southwest Research Institute" <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libjsoncpp-dev, libyaml-cpp-dev, qt6-base-dev, ros-lyrical-ament-cmake, ros-lyrical-mapviz, ros-lyrical-pluginlib, ros-lyrical-qt-gui-cpp, ros-lyrical-rclcpp, ros-lyrical-swri-math-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-lyrical-tile-map
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libjsoncpp26, libqt6core6t64, libqt6gui6, libqt6opengl6, libyaml-cpp-dev, qt6-base-dev, ros-lyrical-mapviz, ros-lyrical-pluginlib, ros-lyrical-qt-gui-cpp, ros-lyrical-rclcpp, ros-lyrical-swri-math-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-ros-workspace
+Description: Tile map provides a slippy map style interface for visualizing OpenStreetMap and GoogleMap tiles.
+ A mapviz visualization plug-in is also implemented
