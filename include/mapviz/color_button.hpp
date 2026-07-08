@@ -27,8 +27,8 @@
 // DAMAGE.
 //
 // *****************************************************************************
-#ifndef MAPVIZ__COLOR_BUTTON_H_
-#define MAPVIZ__COLOR_BUTTON_H_
+#ifndef MAPVIZ__COLOR_BUTTON_HPP_
+#define MAPVIZ__COLOR_BUTTON_HPP_
 
 #include <QPushButton>
 #include <QColor>
@@ -70,4 +70,4 @@ class ColorButton : public QPushButton
   void handleClicked();
 };  // class ColorButton
 }  // namespace mapviz
-#endif  // MAPVIZ__COLOR_BUTTON_H_
+#endif  // MAPVIZ__COLOR_BUTTON_HPP_
