@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,10 @@
 #include <QMouseEvent>
 #include <QLineF>
 #include <QDateTime>
-#include "mapviz_plugins/canvas_click_filter.h"
+
+#include <mapviz/qt_mouse_event_compat.hpp>
+
+#include "mapviz_plugins/canvas_click_filter.hpp"
 
 namespace mapviz_plugins
 {
@@ -57,14 +60,15 @@ namespace mapviz_plugins
     {
       is_mouse_down_ = true;
       QMouseEvent* me = dynamic_cast<QMouseEvent*>(event);
-      mouse_down_pos_ = me->localPos();
+      mouse_down_pos_ = mapviz::MouseEventPosition(me);
       mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
     } else if (event->type() == QEvent::MouseButtonRelease) {
       if (is_mouse_down_)
       {
         QMouseEvent* me = dynamic_cast<QMouseEvent*>(event);
+        const QPointF mouse_position = mapviz::MouseEventPosition(me);
 
-        qreal distance = QLineF(mouse_down_pos_, me->localPos()).length();
+        qreal distance = QLineF(mouse_down_pos_, mouse_position).length();
         qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
 
         // Only fire the event if the mouse has moved less than the maximum distance
@@ -73,7 +77,7 @@ namespace mapviz_plugins
         // or just holding the cursor in place.
         if (msecsDiff < max_ms_ && distance <= max_distance_)
         {
-          Q_EMIT pointClicked(me->localPos());
+          Q_EMIT pointClicked(mouse_position);
         }
       }
       is_mouse_down_ = false;
