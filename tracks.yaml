@@ -308,11 +308,11 @@ tracks:
     patches: null
     release_inc: '4'
     release_repo_url: null
-    release_tag: 2.6.3
+    release_tag: 3.1.0
     ros_distro: lyrical
     vcs_type: git
     vcs_uri: https://github.com/swri-robotics/mapviz.git
-    version: 2.6.3
+    version: 3.1.0
   melodic:
     actions:
     - bloom-export-upstream :{vcs_local_uri} :{vcs_type} --tag :{release_tag} --display-uri
