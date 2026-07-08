@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__CONFIG_ITEM_H_
-#define MAPVIZ__CONFIG_ITEM_H_
+#ifndef MAPVIZ__CONFIG_ITEM_HPP_
+#define MAPVIZ__CONFIG_ITEM_HPP_
 
 // C++ standard libraries
 #include <string>
@@ -38,6 +38,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QResizeEvent>
 #include <QListWidgetItem>
 
 // C++ standard libraries
@@ -45,7 +46,7 @@
 #include <vector>
 
 // Auto-generated UI files
-#include "ui_configitem.h"
+#include "ui/ui_configitem.h"
 
 namespace mapviz
 {
@@ -82,11 +83,14 @@ public Q_SLOTS:
 
 private:
   void contextMenuEvent(QContextMenuEvent *event) override;
+  void resizeEvent(QResizeEvent* event) override;
+  void updateNameLabel();
 
 protected:
   QListWidgetItem* item_;
   QString name_;
   QString type_;
+  QString full_label_text_;
   QAction* edit_name_action_;
   QAction* duplicate_item_action_;
   QAction* remove_item_action_;
@@ -94,4 +98,4 @@ protected:
 };
 }   // namespace mapviz
 
-#endif  // MAPVIZ__CONFIG_ITEM_H_
+#endif  // MAPVIZ__CONFIG_ITEM_HPP_
