@@ -2,6 +2,31 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+3.1.0 (2026-07-08)
+------------------
+* Dual Support for Qt5 and Qt6 (`#873 <https://github.com/swri-robotics/mapviz/issues/873>`_)
+  Adding support for building against both Qt5 and Qt6
+* Adjust UI element size properties to work for higher resolutions/scaling (`#879 <https://github.com/swri-robotics/mapviz/issues/879>`_)
+  * Update button/text/space fields to work better for a variety of display resolutions and scalings
+  * Fix spinboxes for 1080p
+* Fixed bad initial path import (`#878 <https://github.com/swri-robotics/mapviz/issues/878>`_)
+  Co-authored-by: David Anthony <djanthony@gmail.com>
+* Contributors: Alex Youngs, David Anthony
+
+3.0.1 (2026-05-27)
+------------------
+
+3.0.0 (2026-05-10)
+------------------
+* Refactor OpenGL Interface (`#871 <https://github.com/swri-robotics/mapviz/issues/871>`_)
+  * Refactoring to use Qt's OpenGL interfaces rather than raw GLEW and GLUT.
+  ---------
+  Co-authored-by: DangitBen <30333928+DangitBen@users.noreply.github.com>
+* Contributors: David Anthony
+
+2.6.4 (2026-05-10)
+------------------
+
 2.6.3 (2026-04-27)
 ------------------
 
