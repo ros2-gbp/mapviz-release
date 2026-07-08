@@ -1,0 +1,12 @@
+Source: ros-lyrical-multires-image
+Section: misc
+Priority: optional
+Maintainer: "Southwest Research Institute" <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), qt6-base-dev, ros-lyrical-ament-cmake, ros-lyrical-geometry-msgs, ros-lyrical-mapviz, ros-lyrical-pluginlib, ros-lyrical-qt-gui-cpp, ros-lyrical-rclcpp, ros-lyrical-swri-math-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-lyrical-multires-image
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt6core6t64, libqt6gui6, libqt6opengl6, qt6-base-dev, ros-lyrical-geometry-msgs, ros-lyrical-mapviz, ros-lyrical-pluginlib, ros-lyrical-qt-gui-cpp, ros-lyrical-rclcpp, ros-lyrical-rclpy, ros-lyrical-swri-math-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-ros-workspace
+Description: multires_image
