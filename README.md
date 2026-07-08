@@ -1,3 +1,31 @@
+## mapviz (lyrical) - 3.1.0-1
+
+The packages in the `mapviz` repository were released into the `lyrical` distro by running `/usr/bin/bloom-release --edit --rosdistro lyrical mapviz` on `Wed, 08 Jul 2026 20:49:30 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_interfaces`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/ros2-gbp/mapviz-release.git
+- rosdistro version: `null`
+- old version: `2.6.3-4`
+- new version: `3.1.0-1`
+
+Versions of tools used:
+
+- bloom version: `0.14.3`
+- catkin_pkg version: `1.1.0`
+- rosdep version: `0.26.0`
+- rosdistro version: `1.0.1`
+- vcstools version: `0.1.42`
+
+
 ## mapviz (rolling) - 3.1.0-1
 
 The packages in the `mapviz` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --edit --rosdistro rolling mapviz` on `Wed, 08 Jul 2026 20:47:30 -0000`
