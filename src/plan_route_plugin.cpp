@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,13 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/plan_route_plugin.h>
+#include <mapviz_plugins/plan_route_plugin.hpp>
+#include <mapviz/qt_mouse_event_compat.hpp>
 
 // QT libraries
 #include <QDateTime>
 #include <QDialog>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPalette>
@@ -230,10 +231,13 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool PlanRoutePlugin::Initialize(QGLWidget* canvas)
+  bool PlanRoutePlugin::Initialize(QOpenGLWidget* canvas)
   {
     map_canvas_ = dynamic_cast<mapviz::MapCanvas*>(canvas);
     map_canvas_->installEventFilter(this);
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
 
     retry_timer_ = node_->create_wall_timer(1000ms, [this](){Retry();});
 
@@ -262,7 +266,7 @@ namespace mapviz_plugins
     int closest_point = 0;
     double closest_distance = std::numeric_limits<double>::max();
 
-    QPointF point = event->localPos();
+    QPointF point = mapviz::MouseEventPosition(event);
     stu::Transform transform;
     if (tf_manager_->GetTransform(target_frame_, stu::_wgs84_frame, transform))
     {
@@ -295,7 +299,7 @@ namespace mapviz_plugins
         return true;
       } else {
         is_mouse_down_ = true;
-        mouse_down_pos_ = event->localPos();
+        mouse_down_pos_ = mapviz::MouseEventPosition(event);
         mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
         return false;
       }
@@ -313,7 +317,7 @@ namespace mapviz_plugins
 
   bool PlanRoutePlugin::handleMouseRelease(QMouseEvent* event)
   {
-    QPointF point = event->localPos();
+    QPointF point = mapviz::MouseEventPosition(event);
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
     {
       stu::Transform transform;
@@ -364,7 +368,7 @@ namespace mapviz_plugins
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
     {
-      QPointF point = event->localPos();
+      QPointF point = mapviz::MouseEventPosition(event);
       stu::Transform transform;
       if (tf_manager_->GetTransform(stu::_wgs84_frame, target_frame_, transform))
       {
