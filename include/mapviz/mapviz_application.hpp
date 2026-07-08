@@ -27,46 +27,33 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__RQT_MAPVIZ_H_
-#define MAPVIZ__RQT_MAPVIZ_H_
+#ifndef MAPVIZ__MAPVIZ_APPLICATION_HPP_
+#define MAPVIZ__MAPVIZ_APPLICATION_HPP_
 
-/*
- * The RQT GUI CPP files use the Qt macros "slots" and "signals".  These conflict
- * with Boost macros of the same name; normally we fix this by adding "-DQT_NO_KEYWORDS"
- * in our CMakeLists file, then using Q_SLOTS and Q_SIGNALS in our source code instead.
- * Since we can't edit the ROS source code, though, we need to define those macros before
- * we include the ROS headers and then undefine them afterwards.
- */
-#define slots
-#define signals
-#if __has_include(<rqt_gui_cpp/plugin.h>)
-#include <rqt_gui_cpp/plugin.h>
-#else
-#include <rqt_gui_cpp/plugin.hpp>
-#endif
-#undef slots
-#undef signals
+#include <QApplication>
+#include <QEvent>
 
-#include "mapviz.hpp"
+#include <rclcpp/logger.hpp>
 
 namespace mapviz
 {
-class RqtMapviz : public rqt_gui_cpp::Plugin
+/**
+ * This class exists solely so that we can override QApplication::notify and
+ * log exceptions in the event loop as errors rather than letting them
+ * crash the entire program.
+ */
+class MapvizApplication : public QApplication
 {
-Q_OBJECT
 public:
-  RqtMapviz();
-  virtual void initPlugin(qt_gui_cpp::PluginContext& context);
-  virtual void shutdownPlugin();
-  virtual void saveSettings(
-    qt_gui_cpp::Settings& plugin_settings,
-    qt_gui_cpp::Settings& instance_settings) const;
-  virtual void restoreSettings(
-    const qt_gui_cpp::Settings& plugin_settings,
-    const qt_gui_cpp::Settings& instance_settings);
+  MapvizApplication(int &argc, char** argv,
+      rclcpp::Logger logger = rclcpp::get_logger("mapviz::MapvizApplication"));
+
+  void setLogger(const rclcpp::Logger& logger);
 private:
-  Mapviz* widget_;
+  bool notify(QObject* receiver, QEvent* event) override;
+
+  rclcpp::Logger logger_;
 };
 }   // namespace mapviz
 
-#endif  // MAPVIZ__RQT_MAPVIZ_H_
+#endif  // MAPVIZ__MAPVIZ_APPLICATION_HPP_
