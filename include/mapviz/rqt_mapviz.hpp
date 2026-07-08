@@ -27,40 +27,68 @@
 //
 // *****************************************************************************
 
-#include "mapviz/rqt_mapviz.hpp"
-#include <pluginlib/class_list_macros.hpp>
+#ifndef MAPVIZ__RQT_MAPVIZ_HPP_
+#define MAPVIZ__RQT_MAPVIZ_HPP_
+
+/*
+ * The RQT GUI CPP files use the Qt macros "slots" and "signals".  These conflict
+ * with Boost macros of the same name; normally we fix this by adding "-DQT_NO_KEYWORDS"
+ * in our CMakeLists file, then using Q_SLOTS and Q_SIGNALS in our source code instead.
+ * Since we can't edit the ROS source code, though, we need to define those macros before
+ * we include the ROS headers and then undefine them afterwards.
+ */
+#ifdef slots
+#pragma push_macro("slots")
+#undef slots
+#define MAPVIZ_RESTORE_SLOTS_MACRO
+#endif
+
+#ifdef signals
+#pragma push_macro("signals")
+#undef signals
+#define MAPVIZ_RESTORE_SIGNALS_MACRO
+#endif
+
+#define slots
+#define signals
+#if __has_include(<rqt_gui_cpp/plugin.h>)
+#include <rqt_gui_cpp/plugin.h>
+#else
+#include <rqt_gui_cpp/plugin.hpp>
+#endif
+#undef slots
+#undef signals
+
+#ifdef MAPVIZ_RESTORE_SLOTS_MACRO
+#pragma pop_macro("slots")
+#undef MAPVIZ_RESTORE_SLOTS_MACRO
+#endif
+
+#ifdef MAPVIZ_RESTORE_SIGNALS_MACRO
+#pragma pop_macro("signals")
+#undef MAPVIZ_RESTORE_SIGNALS_MACRO
+#endif
+
+#include "mapviz.hpp"
 
 namespace mapviz
 {
-
-  RqtMapviz::RqtMapviz() :
-    widget_(nullptr)
-  {
-    setObjectName("RqtMapviz");
-  }
-
-  void RqtMapviz::initPlugin(qt_gui_cpp::PluginContext& context)
-  {
-    // The plugin class doesn't really do very much -- just start Mapviz
-    // and add it to the context.
-    widget_ = new Mapviz(false, 0, nullptr);
-    widget_->setWindowFlags(Qt::Widget);
-    context.addWidget(widget_);
-  }
-
-  void RqtMapviz::shutdownPlugin()
-  {
-  }
-
-  void RqtMapviz::saveSettings(qt_gui_cpp::Settings& plugin_settings,
-                               qt_gui_cpp::Settings& instance_settings) const
-  {
-  }
-
-  void RqtMapviz::restoreSettings(const qt_gui_cpp::Settings& plugin_settings,
-                                  const qt_gui_cpp::Settings& instance_settings)
-  {
-  }
+class RqtMapviz : public rqt_gui_cpp::Plugin
+{
+Q_OBJECT
+public:
+  RqtMapviz();
+  virtual void initPlugin(qt_gui_cpp::PluginContext& context);
+  virtual void shutdownPlugin();
+  virtual void saveSettings(
+    qt_gui_cpp::Settings& plugin_settings,
+    qt_gui_cpp::Settings& instance_settings) const;
+  virtual void restoreSettings(
+    const qt_gui_cpp::Settings& plugin_settings,
+    const qt_gui_cpp::Settings& instance_settings);
+private:
+  Mapviz* widget_;
+};
 }   // namespace mapviz
 
-PLUGINLIB_EXPORT_CLASS(mapviz::RqtMapviz, rqt_gui_cpp::Plugin)
+#endif  // MAPVIZ__RQT_MAPVIZ_HPP_
