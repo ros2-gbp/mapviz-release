@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__VIDEO_WRITER_H_
-#define MAPVIZ__VIDEO_WRITER_H_
+#ifndef MAPVIZ__VIDEO_WRITER_HPP_
+#define MAPVIZ__VIDEO_WRITER_HPP_
 
 #include <QImage>
 #include <QObject>
@@ -68,4 +68,4 @@ private:
 };
 }  // namespace mapviz
 
-#endif  // MAPVIZ__VIDEO_WRITER_H_
+#endif  // MAPVIZ__VIDEO_WRITER_HPP_
