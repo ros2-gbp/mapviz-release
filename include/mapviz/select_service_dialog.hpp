@@ -28,8 +28,8 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__SELECT_SERVICE_DIALOG_H_
-#define MAPVIZ__SELECT_SERVICE_DIALOG_H_
+#ifndef MAPVIZ__SELECT_SERVICE_DIALOG_HPP_
+#define MAPVIZ__SELECT_SERVICE_DIALOG_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -171,4 +171,4 @@ private:
 };
 }   //  namespace mapviz
 
-#endif   //  MAPVIZ__SELECT_SERVICE_DIALOG_H_
+#endif   //  MAPVIZ__SELECT_SERVICE_DIALOG_HPP_

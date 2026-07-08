@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,33 +27,23 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__MAPVIZ_APPLICATION_H_
-#define MAPVIZ__MAPVIZ_APPLICATION_H_
+#ifndef MAPVIZ__QT_MOUSE_EVENT_COMPAT_HPP_
+#define MAPVIZ__QT_MOUSE_EVENT_COMPAT_HPP_
 
-#include <QApplication>
-#include <QEvent>
-
-#include <rclcpp/logger.hpp>
+#include <QMouseEvent>
+#include <QPointF>
+#include <QtGlobal>
 
 namespace mapviz
 {
-/**
- * This class exists solely so that we can override QApplication::notify and
- * log exceptions in the event loop as errors rather than letting them
- * crash the entire program.
- */
-class MapvizApplication : public QApplication
+inline QPointF MouseEventPosition(const QMouseEvent* event)
 {
-public:
-  MapvizApplication(int &argc, char** argv,
-      rclcpp::Logger logger = rclcpp::get_logger("mapviz::MapvizApplication"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  return event->position();
+#else
+  return QPointF(event->x(), event->y());
+#endif
+}
+}  // namespace mapviz
 
-  void setLogger(const rclcpp::Logger& logger);
-private:
-  bool notify(QObject* receiver, QEvent* event) override;
-
-  rclcpp::Logger logger_;
-};
-}   // namespace mapviz
-
-#endif  // MAPVIZ__MAPVIZ_APPLICATION_H_
+#endif  // MAPVIZ__QT_MOUSE_EVENT_COMPAT_HPP_
