@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_WIDGETS_H_
-#define MAPVIZ_WIDGETS_H_
+#ifndef MAPVIZ_WIDGETS_HPP_
+#define MAPVIZ_WIDGETS_HPP_
 
 // QT libraries
 #include <QWidget>
@@ -168,4 +168,4 @@ protected:
 };
 }   // namespace mapviz
 
-#endif  // MAPVIZ__WIDGETS_H_
+#endif  // MAPVIZ__WIDGETS_HPP_
