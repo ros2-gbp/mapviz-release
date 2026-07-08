@@ -63,12 +63,16 @@
 #include <QFileInfo>
 #include <QListWidgetItem>
 #include <QMutexLocker>
+#include <QEvent>
+#include <QHBoxLayout>
+#include <QPainter>
+#include <QVBoxLayout>
 
 // Other Project libraries
 #include <swri_math_util/constants.h>
 #include <swri_transform_util/frames.h>
 
-#include <mapviz/config_item.h>
+#include <mapviz/config_item.hpp>
 #include <QtGui/QtGui>
 
 #include <image_transport/image_transport.hpp>
@@ -82,6 +86,47 @@
 
 namespace mapviz
 {
+
+// Constants for VerticalLabel padding. Arbitrarily chosen to look good with
+// the default font and size
+constexpr int VERTICAL_LABEL_PADDING_VERTICAL = 4;
+constexpr int VERTICAL_LABEL_PADDING_HORIZONTAL = 8;
+
+// Minimum width for config panel when pinned. Set to 332 pixels to accommodate
+// the UI layout including labels, spinboxes, and buttons while maintaining
+// usability with reasonable display resolutions and DPI scaling
+constexpr int CONFIG_PANEL_PINNED_WIDTH = 332;
+// Minimum width for collapsed state, set to accommodate the vertical label 
+constexpr int CONFIG_PANEL_COLLAPSED_WIDTH = 28;  
+
+// A label that paints its text rotated 90° clockwise (reads top-to-bottom)
+class VerticalLabel : public QWidget
+{
+public:
+  explicit VerticalLabel(const QString& text, QWidget* parent = nullptr)
+    : QWidget(parent), text_(text) {
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+  }
+  QSize sizeHint() const override {
+    QFontMetrics fm(font());
+    return QSize(fm.height() + VERTICAL_LABEL_PADDING_VERTICAL, fm.horizontalAdvance(text_) + VERTICAL_LABEL_PADDING_HORIZONTAL);
+  }
+  QSize minimumSizeHint() const override { return sizeHint(); }
+protected:
+  void paintEvent(QPaintEvent*) override {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    QFont f = font();
+    f.setBold(true);
+    p.setFont(f);
+    p.translate(width(), 0);
+    p.rotate(90);
+    p.drawText(QRect(4, 0, height(), width()), Qt::AlignVCenter | Qt::AlignLeft, text_);
+  }
+private:
+  QString text_;
+};
+
 const QString Mapviz::ROS_WORKSPACE_VAR = "ROS_WORKSPACE";
 const QString Mapviz::MAPVIZ_CONFIG_FILE = "/.mapviz_config";
 const char Mapviz::IMAGE_TRANSPORT_PARAM[] = "image_transport";
@@ -102,7 +147,12 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
     vid_writer_(nullptr),
     updating_frames_(false),
     node_(nullptr),
-    canvas_(nullptr)
+    canvas_(nullptr),
+    pin_button_(nullptr),
+    title_label_(nullptr),
+    collapsed_label_(nullptr),
+    config_panel_pinned_(true),
+    pinned_panel_width_(CONFIG_PANEL_PINNED_WIDTH)
 {
   // Multiple users could be using mapviz, so its name needs to be anonymous,
   // but ROS 2 Dashing doesn't have a way to set that through node options;
@@ -121,6 +171,44 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   node_->declare_parameter(IMAGE_TRANSPORT_PARAM, "raw");
 
   ui_.setupUi(this);
+
+  // Set up custom title bar for configdock with pin button
+  {
+    QWidget* title_bar = new QWidget(ui_.configdock);
+    QHBoxLayout* title_layout = new QHBoxLayout(title_bar);
+    title_layout->setContentsMargins(4, 0, 4, 0);
+    title_layout->setSpacing(4);
+
+    pin_button_ = new QToolButton(title_bar);
+    pin_button_->setCheckable(true);
+    pin_button_->setChecked(true);
+    pin_button_->setToolTip("Pin panel (unpin to auto-hide)");
+    pin_button_->setIcon(QIcon::fromTheme("window-pin",
+      QIcon::fromTheme("object-locked")));
+    pin_button_->setAutoRaise(true);
+    pin_button_->setFixedSize(20, 20);
+    // Use text fallback if no icon theme available
+    if (pin_button_->icon().isNull()) {
+      pin_button_->setText("\xF0\x9F\x93\x8C");  // pin emoji as fallback
+    }
+    title_layout->addWidget(pin_button_);
+
+    title_label_ = new QLabel("Config", title_bar);
+    title_label_->setStyleSheet("font-weight: bold;");
+    title_layout->addWidget(title_label_);
+    title_layout->addStretch();
+
+    title_bar->setLayout(title_layout);
+    ui_.configdock->setTitleBarWidget(title_bar);
+
+    connect(pin_button_, SIGNAL(toggled(bool)), this, SLOT(TogglePinConfigPanel(bool)));
+    ui_.configdock->installEventFilter(this);
+  }
+
+  // Add vertical label to dock contents for collapsed state
+  collapsed_label_ = new VerticalLabel("Config", ui_.dockWidgetContents);
+  collapsed_label_->setVisible(false);
+  ui_.verticalLayout->insertWidget(0, collapsed_label_);
 
   xy_pos_label_->setVisible(false);
   lat_lon_pos_label_->setVisible(false);
@@ -235,6 +323,8 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   connect(rename_display_shortcut, SIGNAL(activated()), this, SLOT(RenameDisplay()));
   QShortcut * add_display_shortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_N), this);
   connect(add_display_shortcut, SIGNAL(activated()), this, SLOT(SelectNewDisplay()));
+  QShortcut *duplicate_display_shortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_D), this);
+  connect(duplicate_display_shortcut, SIGNAL(activated()), this, SLOT(DuplicateDisplay()));
 }
 
 Mapviz::~Mapviz()
@@ -627,6 +717,15 @@ void Mapviz::Open(const std::string& filename)
       ui_.actionShow_Capture_Tools->setChecked(show_capture_tools);
     }
 
+    if (doc["panel_width"]) {
+      int panel_width = doc["panel_width"].as<int>();
+      if (panel_width >= CONFIG_PANEL_PINNED_WIDTH) {
+        pinned_panel_width_ = panel_width;
+        resizeDocks({ui_.configdock}, {panel_width}, Qt::Horizontal);
+        ui_.configdock->setMinimumWidth(CONFIG_PANEL_PINNED_WIDTH);
+      }
+    }
+
     if (doc["window_width"]) {
       int window_width = doc["window_width"].as<int>();
       resize(window_width, height());
@@ -797,6 +896,7 @@ void Mapviz::Save(const std::string& filename)
       << ui_.actionShow_Capture_Tools->isChecked();
   out << YAML::Key << "window_width" << YAML::Value << width();
   out << YAML::Key << "window_height" << YAML::Value << height();
+  out << YAML::Key << "panel_width" << YAML::Value << ui_.configdock->width();
   out << YAML::Key << "view_scale" << YAML::Value << canvas_->ViewScale();
   out << YAML::Key << "offset_x" << YAML::Value << canvas_->OffsetX();
   out << YAML::Key << "offset_y" << YAML::Value << canvas_->OffsetY();
@@ -993,7 +1093,6 @@ void Mapviz::AddDisplay(
   }
 
   if (!config) {
-    // ROS_ERROR("Failed to parse properties into YAML.");
     RCLCPP_ERROR(node_->get_logger(), "Failed to parse properties into YAML.");
     resp->success = false;
     throw std::runtime_error("Failed to parse properties into YAML.");
@@ -1170,7 +1269,7 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
   config_item->SetType(pretty_type);
   QListWidgetItem* item = new PluginConfigListItem();
   config_item->SetListItem(item);
-  item->setSizeHint(config_item->sizeHint());
+  item->setSizeHint(QSize(0, config_item->sizeHint().height()));
   connect(config_item, SIGNAL(UpdateSizeHint()), this, SLOT(UpdateSizeHints()));
   connect(
     config_item,
@@ -1182,6 +1281,11 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
     SIGNAL(RemoveRequest(QListWidgetItem*)),
     this,
     SLOT(RemoveDisplay(QListWidgetItem*)));
+  connect(
+    config_item,
+    SIGNAL(DuplicateRequest(QListWidgetItem*)),
+    this,
+    SLOT(DuplicateDisplay(QListWidgetItem*)));
   connect(plugin.get(), SIGNAL(VisibleChanged(bool)), config_item, SLOT(ToggleDraw(bool)));
   connect(plugin.get(), SIGNAL(SizeChanged()), this, SLOT(UpdateSizeHints()));
 
@@ -1288,6 +1392,35 @@ void Mapviz::ToggleConfigPanel(bool on)
   AdjustWindowSize();
 }
 
+void Mapviz::TogglePinConfigPanel(bool pinned)
+{
+  config_panel_pinned_ = pinned;
+  if (pinned) {
+    pin_button_->setToolTip("Panel pinned (click to auto-hide)");
+    // Restore full dock
+    const int target = std::max(pinned_panel_width_, CONFIG_PANEL_PINNED_WIDTH);
+    title_label_->setText("Config");
+    ui_.configdock->setMaximumWidth(QWIDGETSIZE_MAX);
+    resizeDocks({ui_.configdock}, {target}, Qt::Horizontal);
+    ui_.configdock->setMinimumWidth(CONFIG_PANEL_PINNED_WIDTH);
+    collapsed_label_->setVisible(false);
+    ui_.widget_2->show();
+    ui_.configs->show();
+    ui_.widget->show();
+  } else {
+    pin_button_->setToolTip("Panel unpinned (click to pin)");
+    // Collapse to narrow strip with vertical label
+    title_label_->setText("");
+    ui_.widget_2->hide();
+    ui_.configs->hide();
+    ui_.widget->hide();
+    collapsed_label_->setVisible(true);
+    ui_.configdock->setMinimumWidth(28);
+    ui_.configdock->setMaximumWidth(28);
+  }
+  AdjustWindowSize();
+}
+
 void Mapviz::ToggleStatusBar(bool on)
 {
   ui_.statusbar->setVisible(on);
@@ -1341,7 +1474,7 @@ void Mapviz::ToggleRecord(bool on)
       RCLCPP_INFO(node_->get_logger(), "Writing video to: %s", filename.c_str());
       ui_.statusbar->showMessage("Recording video to " + QString::fromStdString(filename));
 
-      canvas_->updateGL();
+      canvas_->update();
     }
 
     record_timer_.start(1000.0 / 30.0);
@@ -1464,7 +1597,7 @@ void Mapviz::UpdateSizeHints()
       // Make sure the ConfigItem in the QListWidgetItem we're getting really
       // exists; if this method is called before it's been initialized, it would
       // cause a crash.
-      item->setSizeHint(widget->sizeHint());
+      item->setSizeHint(QSize(0, widget->sizeHint().height()));
     }
   }
 }
@@ -1498,6 +1631,65 @@ void Mapviz::RenameDisplay(QListWidgetItem* item)
   if (item) {
     ConfigItem* config_item = static_cast<ConfigItem*>(ui_.configs->itemWidget(item));
     config_item->EditName();
+  }
+}
+
+void Mapviz::DuplicateDisplay()
+{
+  QListWidgetItem* item = ui_.configs->item(ui_.configs->currentRow());
+  if (item != nullptr)
+  {
+    DuplicateDisplay(item);
+  }
+}
+
+void Mapviz::DuplicateDisplay(QListWidgetItem* item)
+{
+  RCLCPP_INFO(node_->get_logger(), "Duplicating active display... ");
+  // - Get plugin associated with QListWidgetItem
+  if (plugins_.count(item) != 1)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Item attempted to duplicate is not a plugin.");
+    return;
+  }
+  MapvizPluginPtr target_plugin = plugins_[item];
+  ConfigItem* target_config_item = static_cast<ConfigItem*>(ui_.configs->itemWidget(item));
+
+  // - Save plugin config to a temporary string via an emitter
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "type" << YAML::Value << target_plugin->Type();
+  out << YAML::Key << "name" << YAML::Value << target_config_item->Name().toStdString();
+  out << YAML::Key << "config" << YAML::Value;
+  out << YAML::BeginMap;
+  out << YAML::Key << "visible" << YAML::Value << target_plugin->Visible();
+  out << YAML::Key << "collapsed" << YAML::Value << target_config_item->Collapsed();
+  target_plugin->SaveConfig(out, "");
+  out << YAML::EndMap;
+  out << YAML::EndMap;
+
+  // - Create the new display via existing MapvizPlugin::LoadConfig interface
+  YAML::Node temp_node(out.c_str());
+  YAML::Node temp_config_node = temp_node["config"];
+  if (!temp_config_node)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Cannot duplicate plugin of type %s. Invalid config.",
+        target_plugin->Type().c_str());
+    return;
+  }
+  try
+  {
+    MapvizPluginPtr duplicate_plugin = CreateNewDisplay(
+        target_config_item->Name().toStdString(),
+        target_plugin->Type(),
+        target_plugin->Visible(),
+        target_config_item->Collapsed());
+    duplicate_plugin->LoadConfig(temp_config_node, "");
+    duplicate_plugin->DrawIcon();
+  }
+  catch (const pluginlib::LibraryLoadException& e)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "%s", e.what());
   }
 }
 
@@ -1552,5 +1744,37 @@ void Mapviz::HandleProfileTimer()
       plugin->PrintMeasurements();
     }
   }
+}
+
+bool Mapviz::eventFilter(QObject* object, QEvent* event)
+{
+  if (object == ui_.configdock && config_panel_pinned_ &&
+      event->type() == QEvent::Resize) {
+    // Grab the resized panel width
+    pinned_panel_width_ = ui_.configdock->width();
+  } else if (object == ui_.configdock && !config_panel_pinned_) {
+    if (event->type() == QEvent::Enter) {
+      // Expand on mouse enter
+      const int target = std::max(pinned_panel_width_, CONFIG_PANEL_PINNED_WIDTH);
+      title_label_->setText("Config");
+      ui_.configdock->setMaximumWidth(QWIDGETSIZE_MAX);
+      resizeDocks({ui_.configdock}, {target}, Qt::Horizontal);
+      ui_.configdock->setMinimumWidth(CONFIG_PANEL_PINNED_WIDTH);
+      collapsed_label_->setVisible(false);
+      ui_.widget_2->show();
+      ui_.configs->show();
+      ui_.widget->show();
+    } else if (event->type() == QEvent::Leave) {
+      // Collapse on mouse leave
+      title_label_->setText("");
+      ui_.widget_2->hide();
+      ui_.configs->hide();
+      ui_.widget->hide();
+      collapsed_label_->setVisible(true);
+      ui_.configdock->setMinimumWidth(CONFIG_PANEL_COLLAPSED_WIDTH);
+      ui_.configdock->setMaximumWidth(CONFIG_PANEL_COLLAPSED_WIDTH);
+    }
+  }
+  return QMainWindow::eventFilter(object, event);
 }
 }   // namespace mapviz
