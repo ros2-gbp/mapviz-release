@@ -27,14 +27,14 @@
 //
 // *****************************************************************************
 
-#include <multires_image/multires_image_plugin.h>
+#include <multires_image/multires_image_plugin.hpp>
 
 // C++ standard libraries
 #include <cstdio>
 
 // QT libraries
 #include <QFileDialog>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPalette>
 
 // ROS libraries
@@ -200,7 +200,7 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool MultiresImagePlugin::Initialize(QGLWidget* canvas)
+  bool MultiresImagePlugin::Initialize(QOpenGLWidget* canvas)
   {
     canvas_ = canvas;
 
@@ -323,17 +323,20 @@ namespace mapviz_plugins
     {
       std::string path_string = node["path"].as<std::string>();
 
-      std::filesystem::path image_path(path_string);
-      if (!image_path.is_absolute())
+      if (!path_string.empty())
       {
-        std::filesystem::path base_path(path);
-        path_string =
-          (path / image_path.relative_path()).lexically_normal().string();
+        std::filesystem::path image_path(path_string);
+        if (!image_path.is_absolute())
+        {
+          std::filesystem::path base_path(path);
+          path_string =
+            (path / image_path.relative_path()).lexically_normal().string();
+        }
+
+        ui_.path->setText(path_string.c_str());
+
+        AcceptConfiguration();
       }
-
-      ui_.path->setText(path_string.c_str());
-
-      AcceptConfiguration();
     }
 
     if (node["offset_x"])
