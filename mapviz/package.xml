@@ -1,6 +1,6 @@
 <package format="3">
   <name>mapviz</name>
-  <version>2.6.5</version>
+  <version>3.1.0</version>
   <description>
     2D mapping display with extensible data overlays 
   </description>
@@ -12,16 +12,13 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>pkg-config</buildtool_depend>
-  <buildtool_depend>qt5-qmake</buildtool_depend>
 
-  <depend>libqt5-core</depend>
-  <build_depend>libqt5-opengl-dev</build_depend>
-  <build_depend>ros_environment</build_depend>
+  <build_depend>qt-base-dev</build_depend>
+
+  <build_export_depend>qt-base-dev</build_export_depend>
 
   <depend>geometry_msgs</depend>
-  <depend>glut</depend>
   <depend>image_transport</depend>
-  <depend>libglew-dev</depend>
   <depend>libopencv-dev</depend>
   <depend>libxi-dev</depend>
   <depend>libxmu-dev</depend>
@@ -38,7 +35,9 @@
   <depend>tf2_ros</depend>
   <depend>yaml-cpp</depend>
 
-  <exec_depend>libqt5-opengl</exec_depend>
+  <exec_depend>libqtcore</exec_depend>
+  <exec_depend>libqtgui</exec_depend>
+  <exec_depend>libqtopengl</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
