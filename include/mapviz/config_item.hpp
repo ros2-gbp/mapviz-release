@@ -27,46 +27,75 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__RQT_MAPVIZ_H_
-#define MAPVIZ__RQT_MAPVIZ_H_
+#ifndef MAPVIZ__CONFIG_ITEM_HPP_
+#define MAPVIZ__CONFIG_ITEM_HPP_
 
-/*
- * The RQT GUI CPP files use the Qt macros "slots" and "signals".  These conflict
- * with Boost macros of the same name; normally we fix this by adding "-DQT_NO_KEYWORDS"
- * in our CMakeLists file, then using Q_SLOTS and Q_SIGNALS in our source code instead.
- * Since we can't edit the ROS source code, though, we need to define those macros before
- * we include the ROS headers and then undefine them afterwards.
- */
-#define slots
-#define signals
-#if __has_include(<rqt_gui_cpp/plugin.h>)
-#include <rqt_gui_cpp/plugin.h>
-#else
-#include <rqt_gui_cpp/plugin.hpp>
-#endif
-#undef slots
-#undef signals
+// C++ standard libraries
+#include <string>
+#include <vector>
 
-#include "mapviz.hpp"
+// QT libraries
+#include <QWidget>
+#include <QLabel>
+#include <QMouseEvent>
+#include <QResizeEvent>
+#include <QListWidgetItem>
+
+// C++ standard libraries
+#include <string>
+#include <vector>
+
+// Auto-generated UI files
+#include "ui/ui_configitem.h"
 
 namespace mapviz
 {
-class RqtMapviz : public rqt_gui_cpp::Plugin
+class ConfigItem : public QWidget
 {
-Q_OBJECT
+  Q_OBJECT
+
 public:
-  RqtMapviz();
-  virtual void initPlugin(qt_gui_cpp::PluginContext& context);
-  virtual void shutdownPlugin();
-  virtual void saveSettings(
-    qt_gui_cpp::Settings& plugin_settings,
-    qt_gui_cpp::Settings& instance_settings) const;
-  virtual void restoreSettings(
-    const qt_gui_cpp::Settings& plugin_settings,
-    const qt_gui_cpp::Settings& instance_settings);
+  explicit ConfigItem(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
+  ~ConfigItem() override = default;
+
+  void SetName(QString name);
+  void SetType(QString type);
+  void SetWidget(QWidget* widget);
+
+  void SetListItem(QListWidgetItem* item) { item_ = item; }
+  bool Collapsed() const { return ui_.content->isHidden(); }
+  QString Name() const { return name_; }
+
+  Ui::configitem ui_;
+
+Q_SIGNALS:
+  void UpdateSizeHint();
+  void ToggledDraw(QListWidgetItem* plugin, bool visible);
+  void DuplicateRequest(QListWidgetItem* plugin);
+  void RemoveRequest(QListWidgetItem* plugin);
+
+public Q_SLOTS:
+  void Hide();
+  void EditName();
+  void Duplicate();
+  void Remove();
+  void ToggleDraw(bool toggled);
+
 private:
-  Mapviz* widget_;
+  void contextMenuEvent(QContextMenuEvent *event) override;
+  void resizeEvent(QResizeEvent* event) override;
+  void updateNameLabel();
+
+protected:
+  QListWidgetItem* item_;
+  QString name_;
+  QString type_;
+  QString full_label_text_;
+  QAction* edit_name_action_;
+  QAction* duplicate_item_action_;
+  QAction* remove_item_action_;
+  bool visible_;
 };
 }   // namespace mapviz
 
-#endif  // MAPVIZ__RQT_MAPVIZ_H_
+#endif  // MAPVIZ__CONFIG_ITEM_HPP_

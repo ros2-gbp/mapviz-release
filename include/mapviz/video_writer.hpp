@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2017, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,40 +27,45 @@
 //
 // *****************************************************************************
 
-#include "mapviz/rqt_mapviz.hpp"
-#include <pluginlib/class_list_macros.hpp>
+#ifndef MAPVIZ__VIDEO_WRITER_HPP_
+#define MAPVIZ__VIDEO_WRITER_HPP_
+
+#include <QImage>
+#include <QObject>
+#include <QRecursiveMutex>
+
+#include <memory>
+#include <string>
+
+#ifndef Q_MOC_RUN
+#include <opencv2/highgui/highgui.hpp>
+#endif
 
 namespace mapviz
 {
+class VideoWriter : public QObject
+{
+  Q_OBJECT
 
-  RqtMapviz::RqtMapviz() :
-    widget_(nullptr)
-  {
-    setObjectName("RqtMapviz");
-  }
+public:
+  VideoWriter() :
+    height_(0),
+    width_(0)
+  {}
 
-  void RqtMapviz::initPlugin(qt_gui_cpp::PluginContext& context)
-  {
-    // The plugin class doesn't really do very much -- just start Mapviz
-    // and add it to the context.
-    widget_ = new Mapviz(false, 0, nullptr);
-    widget_->setWindowFlags(Qt::Widget);
-    context.addWidget(widget_);
-  }
+  bool initializeWriter(const std::string& directory, int width, int height);
+  bool isRecording();
+  void stop();
 
-  void RqtMapviz::shutdownPlugin()
-  {
-  }
+public Q_SLOTS:
+  void processFrame(QImage frame);
 
-  void RqtMapviz::saveSettings(qt_gui_cpp::Settings& plugin_settings,
-                               qt_gui_cpp::Settings& instance_settings) const
-  {
-  }
+private:
+  int height_;
+  int width_;
+  QRecursiveMutex video_mutex_;
+  std::shared_ptr<cv::VideoWriter> video_writer_;
+};
+}  // namespace mapviz
 
-  void RqtMapviz::restoreSettings(const qt_gui_cpp::Settings& plugin_settings,
-                                  const qt_gui_cpp::Settings& instance_settings)
-  {
-  }
-}   // namespace mapviz
-
-PLUGINLIB_EXPORT_CLASS(mapviz::RqtMapviz, rqt_gui_cpp::Plugin)
+#endif  // MAPVIZ__VIDEO_WRITER_HPP_

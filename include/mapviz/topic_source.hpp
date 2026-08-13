@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,71 +27,37 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__CONFIG_ITEM_H_
-#define MAPVIZ__CONFIG_ITEM_H_
+#ifndef MAPVIZ__TOPIC_SOURCE_HPP_
+#define MAPVIZ__TOPIC_SOURCE_HPP_
 
-// C++ standard libraries
+#include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
-// QT libraries
-#include <QWidget>
-#include <QLabel>
-#include <QMouseEvent>
-#include <QListWidgetItem>
-
-// C++ standard libraries
-#include <string>
-#include <vector>
-
-// Auto-generated UI files
-#include "ui_configitem.h"
+#include <rclcpp/logger.hpp>
 
 namespace mapviz
 {
-class ConfigItem : public QWidget
+/**
+ * A narrow, read-only view of the ROS graph for the topic/service selection
+ * dialogs.  ROS graph queries are thread-safe, so unlike a raw node handle
+ * this grants nothing that can register callbacks, create entities, or
+ * otherwise require NodeUnsafe()'s caveats.  Obtain one from
+ * MapvizPlugin::TopicSource().
+ */
+struct TopicSource
 {
-  Q_OBJECT
+  /// Name -> datatypes, as returned by get_*_names_and_types().
+  using NamesAndTypes = std::map<std::string, std::vector<std::string>>;
 
-public:
-  explicit ConfigItem(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
-  ~ConfigItem() override = default;
-
-  void SetName(QString name);
-  void SetType(QString type);
-  void SetWidget(QWidget* widget);
-
-  void SetListItem(QListWidgetItem* item) { item_ = item; }
-  bool Collapsed() const { return ui_.content->isHidden(); }
-  QString Name() const { return name_; }
-
-  Ui::configitem ui_;
-
-Q_SIGNALS:
-  void UpdateSizeHint();
-  void ToggledDraw(QListWidgetItem* plugin, bool visible);
-  void DuplicateRequest(QListWidgetItem* plugin);
-  void RemoveRequest(QListWidgetItem* plugin);
-
-public Q_SLOTS:
-  void Hide();
-  void EditName();
-  void Duplicate();
-  void Remove();
-  void ToggleDraw(bool toggled);
-
-private:
-  void contextMenuEvent(QContextMenuEvent *event) override;
-
-protected:
-  QListWidgetItem* item_;
-  QString name_;
-  QString type_;
-  QAction* edit_name_action_;
-  QAction* duplicate_item_action_;
-  QAction* remove_item_action_;
-  bool visible_;
+  /// Returns every known topic and its datatypes.
+  std::function<NamesAndTypes()> topics;
+  /// Returns every known service and its datatypes.
+  std::function<NamesAndTypes()> services;
+  /// Logger for the dialog's diagnostics.
+  rclcpp::Logger logger;
 };
-}   // namespace mapviz
+}  // namespace mapviz
 
-#endif  // MAPVIZ__CONFIG_ITEM_H_
+#endif  // MAPVIZ__TOPIC_SOURCE_HPP_

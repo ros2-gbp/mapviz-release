@@ -2,12 +2,47 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2.6.5 (2026-05-29)
+4.0.0 (2026-08-12)
+------------------
+* Switching to prefer Qt5 over Qt6 for systems where both are installed (`#899 <https://github.com/swri-robotics/mapviz/issues/899>`_)
+* Add Helper Functions for New Threading Model (`#890 <https://github.com/swri-robotics/mapviz/issues/890>`_)
+* Separate ROS and UI Threads (`#887 <https://github.com/swri-robotics/mapviz/issues/887>`_)
+  * Separating ROS and Qt functionality on separate threads. This is an API breaking change, but significantly improves the system responsiveness and performance.
+* Fixing wrong profiling code (`#886 <https://github.com/swri-robotics/mapviz/issues/886>`_)
+* Update for Deprecated Functionality (`#885 <https://github.com/swri-robotics/mapviz/issues/885>`_)
+* Contributors: David Anthony
+
+3.1.0 (2026-07-08)
+------------------
+* Dual Support for Qt5 and Qt6 (`#873 <https://github.com/swri-robotics/mapviz/issues/873>`_)
+  Adding support for building against both Qt5 and Qt6
+* Remove config panel pin check (`#883 <https://github.com/swri-robotics/mapviz/issues/883>`_)
+* Add persistent config dock size; Move config toggle button (`#881 <https://github.com/swri-robotics/mapviz/issues/881>`_)
+* Plugin panel eliding (`#880 <https://github.com/swri-robotics/mapviz/issues/880>`_)
+* Adjust UI element size properties to work for higher resolutions/scaling (`#879 <https://github.com/swri-robotics/mapviz/issues/879>`_)
+  * Update button/text/space fields to work better for a variety of display resolutions and scalings
+  * Fix spinboxes for 1080p
+* Contributors: Alex Youngs, David Anthony
+
+3.0.1 (2026-05-27)
 ------------------
 * Fix plugin export (`#875 <https://github.com/swri-robotics/mapviz/issues/875>`_)
+  * fix mapviz rqt plugin declaration
+  * make plugin shared lib
+  * add headers to library sources for AUTOMOC
+  also fixed include
+  ---------
   Co-authored-by: Ben Andrew <benjamin.andrew@swri.org>
-  (cherry picked from commit 667d284ac3138bcb726e32cca478a9a768b8dc0c)
-* Contributors: DangitBen
+* Upgrade dependencies from Qt5 to Qt6
+* Contributors: DangitBen, David Anthony
+
+3.0.0 (2026-05-10)
+------------------
+* Refactor OpenGL Interface (`#871 <https://github.com/swri-robotics/mapviz/issues/871>`_)
+  * Refactoring to use Qt's OpenGL interfaces rather than raw GLEW and GLUT.
+  ---------
+  Co-authored-by: DangitBen <30333928+DangitBen@users.noreply.github.com>
+* Contributors: David Anthony
 
 2.6.4 (2026-05-10)
 ------------------
