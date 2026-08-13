@@ -27,8 +27,8 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_TILE_CACHE_H_
-#define MULTIRES_IMAGE_TILE_CACHE_H_
+#ifndef MULTIRES_IMAGE_TILE_CACHE_HPP_
+#define MULTIRES_IMAGE_TILE_CACHE_HPP_
 
 // C++ standard libraries
 #include <vector>
@@ -40,12 +40,12 @@
 #include <QObject>
 #include <QThread>
 #include <QRecursiveMutex>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 
 #include <tf2/transform_datatypes.hpp>
 
-#include <multires_image/tile_set.h>
-#include <multires_image/tile.h>
+#include <multires_image/tile_set.hpp>
+#include <multires_image/tile.hpp>
 
 namespace multires_image
 {
@@ -54,7 +54,7 @@ namespace multires_image
   Q_OBJECT
 
   public:
-    TileCache(TileSet* tileSet, QGLWidget* widget);
+    TileCache(TileSet* tileSet, QOpenGLWidget* widget);
     ~TileCache() override;
 
     void Load(Tile* tile);
@@ -76,7 +76,7 @@ namespace multires_image
 
   private:
     TileSet*                  m_tileSet;
-    QGLWidget*                m_widget;
+    QOpenGLWidget*            m_widget;
     int32_t                   m_currentLayer;
     tf2::Vector3                 m_currentPosition;
     bool                      m_exit;
@@ -125,4 +125,4 @@ namespace multires_image
   };
 }
 
-#endif  // MULTIRES_IMAGE_TILE_CACHE_H_
+#endif  // MULTIRES_IMAGE_TILE_CACHE_HPP_

@@ -27,56 +27,43 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_MULTIRES_VIEW_NODE_H_
-#define MULTIRES_IMAGE_MULTIRES_VIEW_NODE_H_
-
-// C++ standard libraries
-#include <string>
-#include <thread>
+#ifndef MULTIRES_IMAGE_TILE_VIEW_HPP_
+#define MULTIRES_IMAGE_TILE_VIEW_HPP_
 
 // QT libraries
-#include <QMainWindow>
-#include <QMouseEvent>
-#include <QLabel>
-#include <QShowEvent>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 
-// ROS libraries
-#include <rclcpp/rclcpp.hpp>
-
-#include <multires_image/QGLMap.h>
-#include <multires_image/tile_set.h>
+#include <multires_image/tile_set.hpp>
+#include <multires_image/tile_cache.hpp>
 
 namespace multires_image
 {
-  class MultiresViewNode : public QMainWindow
+  class TileView : protected QOpenGLFunctions_1_1
   {
-    Q_OBJECT
-
   public:
-    MultiresViewNode(int argc, char **argv, QWidget *parent = 0, Qt::WindowFlags flags = Qt::WindowFlags());
-    ~MultiresViewNode() override = default;
+    TileView(TileSet* tiles, QOpenGLWidget* widget);
+    ~TileView() = default;
 
-    virtual void showEvent(QShowEvent* event) override;
+    const TileCache* Cache() { return &m_cache; }
 
-    void Initialize();
+    void SetView(double x, double y, double radius, double scale);
 
-    void Spin();
+    void Draw();
+
+    void Exit() { m_cache.Exit(); }
 
   private:
-    void SpinLoop();
-
-    int argc_;
-    char** argv_;
-
-    rclcpp::Node::SharedPtr node_;
-    std::thread*  thread_;
-
-    bool initialized_;
-
-    std::string image_path_;
-
-    TileSet* tile_set_;
+    TileSet*   m_tiles;
+    TileCache  m_cache;
+    int        m_currentLayer;
+    int        m_startRow;
+    int        m_startColumn;
+    int        m_endRow;
+    int        m_endColumn;
+    double     min_scale_;
+    bool       gl_initialized_ = false;
   };
 }
 
-#endif  // MULTIRES_IMAGE_MULTIRES_VIEW_NODE_H_
+#endif  // MULTIRES_IMAGE_TILE_VIEW_HPP_
