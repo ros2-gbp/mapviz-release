@@ -27,14 +27,14 @@
 //
 // *****************************************************************************
 
-#include <multires_image/multires_image_plugin.h>
+#include <multires_image/multires_image_plugin.hpp>
 
 // C++ standard libraries
 #include <cstdio>
 
 // QT libraries
 #include <QFileDialog>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPalette>
 
 // ROS libraries
@@ -90,7 +90,7 @@ namespace mapviz_plugins
       return;
     }
 
-    RCLCPP_ERROR(node_->get_logger(), "Error: %s", message.c_str());
+    RCLCPP_ERROR(Logger(), "Error: %s", message.c_str());
     QPalette p(ui_.status->palette());
     p.setColor(QPalette::Text, Qt::red);
     ui_.status->setPalette(p);
@@ -103,7 +103,7 @@ namespace mapviz_plugins
       return;
     }
 
-    RCLCPP_INFO(node_->get_logger(), "%s", message.c_str());
+    RCLCPP_INFO(Logger(), "%s", message.c_str());
     QPalette p(ui_.status->palette());
     p.setColor(QPalette::Text, Qt::green);
     ui_.status->setPalette(p);
@@ -116,7 +116,7 @@ namespace mapviz_plugins
       return;
     }
 
-    RCLCPP_WARN(node_->get_logger(), "%s", message.c_str());
+    RCLCPP_WARN(Logger(), "%s", message.c_str());
     QPalette p(ui_.status->palette());
     p.setColor(QPalette::Text, Qt::darkYellow);
     ui_.status->setPalette(p);
@@ -125,7 +125,7 @@ namespace mapviz_plugins
 
   void MultiresImagePlugin::AcceptConfiguration()
   {
-    RCLCPP_INFO(node_->get_logger(), "Accept multires image configuration.");
+    RCLCPP_INFO(Logger(), "Accept multires image configuration.");
     if (tile_set_ != NULL && tile_set_->GeoReference().GeoPath() == ui_.path->text().toStdString())
     {
       // Nothing to do.
@@ -200,7 +200,7 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool MultiresImagePlugin::Initialize(QGLWidget* canvas)
+  bool MultiresImagePlugin::Initialize(QOpenGLWidget* canvas)
   {
     canvas_ = canvas;
 
@@ -288,7 +288,7 @@ namespace mapviz_plugins
     {
       if (base.has_root_path())
       {
-        RCLCPP_WARN(node_->get_logger(), "Cannot uncomplete a path relative path from a rooted base.");
+        RCLCPP_WARN(Logger(), "Cannot uncomplete a path relative path from a rooted base.");
         return path;
       }
       else
@@ -323,17 +323,20 @@ namespace mapviz_plugins
     {
       std::string path_string = node["path"].as<std::string>();
 
-      std::filesystem::path image_path(path_string);
-      if (!image_path.is_absolute())
+      if (!path_string.empty())
       {
-        std::filesystem::path base_path(path);
-        path_string =
-          (path / image_path.relative_path()).lexically_normal().string();
+        std::filesystem::path image_path(path_string);
+        if (!image_path.is_absolute())
+        {
+          std::filesystem::path base_path(path);
+          path_string =
+            (path / image_path.relative_path()).lexically_normal().string();
+        }
+
+        ui_.path->setText(path_string.c_str());
+
+        AcceptConfiguration();
       }
-
-      ui_.path->setText(path_string.c_str());
-
-      AcceptConfiguration();
     }
 
     if (node["offset_x"])
