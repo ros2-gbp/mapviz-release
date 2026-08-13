@@ -27,10 +27,10 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/robot_image_plugin.h>
+#include <mapviz_plugins/robot_image_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPalette>
 #include <QImage>
 #include <QFileDialog>
@@ -38,9 +38,14 @@
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/version.h>
+#if AMENT_INDEX_CPP_VERSION_GTE(1, 13, 0)
+#include <ament_index_cpp/get_package_share_path.hpp>
+#else
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#endif
 
-#include <mapviz/select_frame_dialog.h>
+#include <mapviz/select_frame_dialog.hpp>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -143,7 +148,7 @@ namespace mapviz_plugins
     source_frame_ = ui_.frame->text().toStdString();
     PrintWarning("Waiting for transform.");
 
-    RCLCPP_INFO(node_->get_logger(), "Setting target frame to to %s", source_frame_.c_str());
+    RCLCPP_INFO(Logger(), "Setting target frame to to %s", source_frame_.c_str());
 
     initialized_ = true;
 
@@ -240,9 +245,12 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool RobotImagePlugin::Initialize(QGLWidget* canvas)
+  bool RobotImagePlugin::Initialize(QOpenGLWidget* canvas)
   {
     canvas_ = canvas;
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
 
     return true;
   }
@@ -275,7 +283,7 @@ namespace mapviz_plugins
     transformed_ = false;
 
     swri_transform_util::Transform transform;
-    if (GetTransform(node_->get_clock()->now(), transform))
+    if (GetTransform(Clock()->now(), transform))
     {
       top_left_transformed_ = transform * top_left_;
       top_right_transformed_ = transform * top_right_;
@@ -289,7 +297,7 @@ namespace mapviz_plugins
 
   void RobotImagePlugin::LoadImage()
   {
-    RCLCPP_INFO(node_->get_logger(), "Loading image");
+    RCLCPP_INFO(Logger(), "Loading image");
     try
     {
       QImage nullImage;
@@ -312,7 +320,11 @@ namespace mapviz_plugins
         std::string package = filename_.substr(spos + prefix.length());
         package = package.substr(0, package.find(')'));
 
+#if AMENT_INDEX_CPP_VERSION_GTE(1, 13, 0)
+        std::string package_path = ament_index_cpp::get_package_share_path(package).string();
+#else
         std::string package_path = ament_index_cpp::get_package_share_directory(package);
+#endif
         real_filename = QDir(QString::fromStdString(package_path))
             .filePath(QString::fromStdString(filename_.substr(filename_.find(')')+1)))
             .toStdString();
@@ -338,7 +350,12 @@ namespace mapviz_plugins
             Qt::FastTransformation);
         }
 
-        image_ = QGLWidget::convertToGLFormat(image_);
+        // QImage::flipped() replaced mirrored() in Qt 6; Qt 5 only has mirrored().
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        image_ = image_.convertToFormat(QImage::Format_RGBA8888).flipped(Qt::Vertical);
+#else
+        image_ = image_.convertToFormat(QImage::Format_RGBA8888).mirrored(false, true);
+#endif
 
         GLuint ids[1];
         glGenTextures(1, &ids[0]);

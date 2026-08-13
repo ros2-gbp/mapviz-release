@@ -28,12 +28,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  **/ 
 
-#include <mapviz_plugins/pose_plugin.h>
-#include <mapviz_plugins/topic_select.h>
+#include <mapviz_plugins/pose_plugin.hpp>
+#include <mapviz_plugins/topic_select.hpp>
 
 // QT libraries
 #include <QDialog>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPalette>
 
 #include <opencv2/core/core.hpp>
@@ -103,7 +103,7 @@ namespace mapviz_plugins
   void PosePlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "geometry_msgs/msg/PoseStamped",
       qos_);
   
@@ -135,17 +135,23 @@ namespace mapviz_plugins
       topic_ = topic;
       if (!topic.empty())
       {
-        pose_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-          topic_,
-          rclcpp::QoS(1),
-          std::bind(&PosePlugin::PoseCallback, this, std::placeholders::_1));
+        // Preserve the previous fixed depth-1 QoS while routing delivery
+        // through Subscribe(), which hands each message to handlePose() on the
+        // GUI thread where plugin state may be touched without locking.
+        rmw_qos_profile_t pose_qos = rmw_qos_profile_default;
+        pose_qos.depth = 1;
+        Subscribe<geometry_msgs::msg::PoseStamped>(
+          topic_, pose_qos, pose_sub_,
+          [this](geometry_msgs::msg::PoseStamped::ConstSharedPtr msg) {
+            handlePose(msg);
+          });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void PosePlugin::PoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr pose)
+  void PosePlugin::handlePose(const geometry_msgs::msg::PoseStamped::ConstSharedPtr pose)
   {
     if (!has_message_)
     {
@@ -192,9 +198,12 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool PosePlugin::Initialize(QGLWidget* canvas)
+  bool PosePlugin::Initialize(QOpenGLWidget* canvas)
   {
     canvas_ = canvas;
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
     SetColor(ui_.color->color());
 
     return true;

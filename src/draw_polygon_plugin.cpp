@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2016, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,18 +27,19 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/draw_polygon_plugin.h>
+#include <mapviz_plugins/draw_polygon_plugin.hpp>
 
 // QT libraries
 #include <QDateTime>
 #include <QDialog>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QPalette>
 
 #include <geometry_msgs/msg/point32.hpp>
 #include <geometry_msgs/msg/polygon_stamped.hpp>
-#include <mapviz/select_frame_dialog.h>
+#include <mapviz/select_frame_dialog.hpp>
+#include <mapviz/qt_mouse_event_compat.hpp>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -112,7 +113,7 @@ namespace mapviz_plugins
     source_frame_ = ui_.frame->text().toStdString();
     PrintWarning("Waiting for transform.");
 
-    RCLCPP_INFO(node_->get_logger(), "Setting target frame to to %s", source_frame_.c_str());
+    RCLCPP_INFO(Logger(), "Setting target frame to to %s", source_frame_.c_str());
 
     initialized_ = true;
   }
@@ -123,13 +124,13 @@ namespace mapviz_plugins
     {
       polygon_topic_ = ui_.topic->text().toStdString();
       rclcpp::QoS qos = rclcpp::QoS(1).durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-      polygon_pub_ = node_->create_publisher<geometry_msgs::msg::PolygonStamped>(
+      polygon_pub_ = Publisher<geometry_msgs::msg::PolygonStamped>(
           polygon_topic_, qos);
     }
 
     geometry_msgs::msg::PolygonStamped::UniquePtr polygon =
         std::make_unique<geometry_msgs::msg::PolygonStamped>();
-    polygon->header.stamp = node_->get_clock()->now();
+    polygon->header.stamp = Clock()->now();
     polygon->header.frame_id = ui_.frame->text().toStdString();
 
     for (const auto& vertex : vertices_)
@@ -172,10 +173,13 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool DrawPolygonPlugin::Initialize(QGLWidget* canvas)
+  bool DrawPolygonPlugin::Initialize(QOpenGLWidget* canvas)
   {
     map_canvas_ = dynamic_cast<mapviz::MapCanvas*>(canvas);
     map_canvas_->installEventFilter(this);
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
 
     initialized_ = true;
     return true;
@@ -200,7 +204,7 @@ namespace mapviz_plugins
   {
     if(!this->Visible())
     {
-      RCLCPP_DEBUG(node_->get_logger(), "Ignoring mouse press, since draw polygon plugin is hidden");
+      RCLCPP_DEBUG(Logger(), "Ignoring mouse press, since draw polygon plugin is hidden");
       return false;
     }
     
@@ -208,7 +212,7 @@ namespace mapviz_plugins
     int closest_point = 0;
     double closest_distance = std::numeric_limits<double>::max();
 
-    QPointF point = event->localPos();
+    QPointF point = mapviz::MouseEventPosition(event);
     stu::Transform transform;
     std::string frame = ui_.frame->text().toStdString();
     if (tf_manager_->GetTransform(target_frame_, frame, transform))
@@ -238,7 +242,7 @@ namespace mapviz_plugins
         return true;
       } else {
         is_mouse_down_ = true;
-        mouse_down_pos_ = event->localPos();
+        mouse_down_pos_ = mapviz::MouseEventPosition(event);
         mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
         return false;
       }
@@ -259,7 +263,7 @@ namespace mapviz_plugins
     std::string frame = ui_.frame->text().toStdString();
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
-      QPointF point = event->localPos();
+      QPointF point = mapviz::MouseEventPosition(event);
       stu::Transform transform;
       if (tf_manager_->GetTransform(frame, target_frame_, transform))
       {
@@ -273,7 +277,8 @@ namespace mapviz_plugins
       selected_point_ = -1;
       return true;
     } else if (is_mouse_down_) {
-      qreal distance = QLineF(mouse_down_pos_, event->localPos()).length();
+      const QPointF point = mapviz::MouseEventPosition(event);
+      qreal distance = QLineF(mouse_down_pos_, point).length();
       qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
 
       // Only fire the event if the mouse has moved less than the maximum distance
@@ -282,11 +287,9 @@ namespace mapviz_plugins
       // or just holding the cursor in place.
       if (msecsDiff < max_ms_ && distance <= max_distance_)
       {
-        QPointF point = event->localPos();
-
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
         RCLCPP_INFO(
-          node_->get_logger(),
+          Logger(),
           "mouse point at %f, %f -> %f, %f",
           point.x(),
           point.y(),
@@ -302,7 +305,7 @@ namespace mapviz_plugins
           vertices_.push_back(position);
           transformed_vertices_.resize(vertices_.size());
           RCLCPP_INFO(
-            node_->get_logger(),
+            Logger(),
             "Adding vertex at %lf, %lf %s",
             position.x(),
             position.y(),
@@ -319,7 +322,7 @@ namespace mapviz_plugins
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
-      QPointF point = event->localPos();
+      QPointF point = mapviz::MouseEventPosition(event);
       stu::Transform transform;
       std::string frame = ui_.frame->text().toStdString();
       if (tf_manager_->GetTransform(frame, target_frame_, transform))
