@@ -84,7 +84,7 @@ namespace mapviz_plugins
   void NavSatPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "sensor_msgs/msg/NavSatFix",
       qos_);
 
@@ -115,18 +115,19 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        navsat_sub_ = node_->create_subscription<sensor_msgs::msg::NavSatFix>(
-            topic_,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&NavSatPlugin::NavSatFixCallback, this, std::placeholders::_1));
+        // Subscribe() delivers each message to handleNavSatFix() on the GUI
+        // thread, where plugin state may be touched without locking.
+        Subscribe<sensor_msgs::msg::NavSatFix>(
+          topic_, qos, navsat_sub_,
+          [this](sensor_msgs::msg::NavSatFix::ConstSharedPtr msg) { handleNavSatFix(msg); });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void NavSatPlugin::NavSatFixCallback(
-      const sensor_msgs::msg::NavSatFix::ConstSharedPtr navsat)
+
+  void NavSatPlugin::handleNavSatFix(const sensor_msgs::msg::NavSatFix::ConstSharedPtr navsat)
   {
     if (!tf_manager_->LocalXyUtil()->Initialized())
     {
