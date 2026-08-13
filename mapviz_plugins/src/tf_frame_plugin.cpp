@@ -27,13 +27,13 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/tf_frame_plugin.h>
+#include <mapviz_plugins/tf_frame_plugin.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPalette>
 
-#include <mapviz/select_frame_dialog.h>
+#include <mapviz/select_frame_dialog.hpp>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -102,7 +102,7 @@ namespace mapviz_plugins
     source_frame_ = ui_.frame->text().toStdString();
     PrintWarning("Waiting for transform.");
 
-    RCLCPP_INFO(node_->get_logger(), "Setting target frame to to %s", source_frame_.c_str());
+    RCLCPP_INFO(Logger(), "Setting target frame to to %s", source_frame_.c_str());
 
     initialized_ = true;
   }
@@ -110,7 +110,7 @@ namespace mapviz_plugins
   void TfFramePlugin::TimerCallback()
   {
     swri_transform_util::Transform transform;
-    if (GetTransform(node_->get_clock()->now(), transform))
+    if (GetTransform(Clock()->now(), transform))
     {
       StampedPoint stamped_point;
       stamped_point.point = transform.GetOrigin();
@@ -145,12 +145,18 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool TfFramePlugin::Initialize(QGLWidget* canvas)
+  bool TfFramePlugin::Initialize(QOpenGLWidget* canvas)
   {
     canvas_ = canvas;
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
 
-    timer_ = node_->create_wall_timer(std::chrono::milliseconds(100),
-        std::bind(&TfFramePlugin::TimerCallback, this));
+    // A QTimer (instead of a ROS wall timer) so TimerCallback() runs on the
+    // GUI thread, which owns the plugin's state and the TransformManager.
+    QObject::connect(&timer_, &QTimer::timeout,
+                     this, &TfFramePlugin::TimerCallback);
+    timer_.start(100);
 
     SetColor(ui_.color->color());
 
