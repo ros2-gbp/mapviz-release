@@ -33,6 +33,8 @@
 
 #include <swri_math_util/constants.h>
 
+#include <tf2/utils.hpp>
+
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
 
@@ -74,7 +76,7 @@ namespace mapviz_plugins
 
   void MarkerPlugin::ClearHistory()
   {
-    RCLCPP_DEBUG(node_->get_logger(), "MarkerPlugin::ClearHistory()");
+    RCLCPP_DEBUG(Logger(), "MarkerPlugin::ClearHistory()");
     markers_.clear();
     marker_visible_.clear();
     ui_.nsList->clear();
@@ -83,7 +85,7 @@ namespace mapviz_plugins
   void MarkerPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "visualization_msgs/msg/Marker",
       "visualization_msgs/msg/MarkerArray",
       qos_);
@@ -128,27 +130,31 @@ namespace mapviz_plugins
       // That would require a way to de-serialize the data for mapviz to consume (based on message type)
       // The code below checks for the topic type and subscribes in the appropriate manner
 
-      auto known_topics = node_->get_topic_names_and_types();
+      auto known_topics = TopicSource().topics();
       if (known_topics.count(topic_) > 0)
       {
         std::string topic_type = known_topics[topic_][0];
         if (topic_type == "visualization_msgs/msg/Marker")
         {
-          marker_sub_ = node_->create_subscription<visualization_msgs::msg::Marker>(
-            topic_,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&MarkerPlugin::handleMarker, this, std::placeholders::_1));
+          // Subscribe() delivers each message to handleMarker() on the GUI
+          // thread, where plugin state may be touched without locking.
+          Subscribe<visualization_msgs::msg::Marker>(
+            topic_, qos, marker_sub_,
+            [this](visualization_msgs::msg::Marker::ConstSharedPtr marker) {
+              handleMarker(marker);
+            });
         }
         else if (topic_type == "visualization_msgs/msg/MarkerArray")
         {
-          marker_array_sub_ = node_->create_subscription<visualization_msgs::msg::MarkerArray>(
-            topic_,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&MarkerPlugin::handleMarkerArray, this, std::placeholders::_1));
+          Subscribe<visualization_msgs::msg::MarkerArray>(
+            topic_, qos, marker_array_sub_,
+            [this](visualization_msgs::msg::MarkerArray::ConstSharedPtr markers) {
+              handleMarkerArray(markers);
+            });
         }
         else
         {
-          RCLCPP_ERROR(node_->get_logger(),
+          RCLCPP_ERROR(Logger(),
             "Unable to subscribe to topic %s (unsupported type %s).",
             topic_.c_str(), topic_type.c_str());
           return;
@@ -156,16 +162,16 @@ namespace mapviz_plugins
       }
       else
       {
-        RCLCPP_ERROR(node_->get_logger(),
+        RCLCPP_ERROR(Logger(),
             "Unable to subscribe to topic %s (does not exist).", topic_.c_str());
         return;
       }
 
-      RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+      RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
     }
   }
 
-  void MarkerPlugin::handleMarker(visualization_msgs::msg::Marker::ConstSharedPtr marker)
+  void MarkerPlugin::handleMarker(const visualization_msgs::msg::Marker::ConstSharedPtr marker)
   {
     processMarker(*marker);
   }
@@ -252,10 +258,10 @@ namespace mapviz_plugins
       if (lifetime.nanoseconds() == 0)
       {
         markerData.expire_time = rclcpp::Time(rclcpp::Time::max().nanoseconds(),
-            node_->get_clock()->get_clock_type());
+            Clock()->get_clock_type());
       } else {
         // Temporarily add 5 seconds to fix some existing markers.
-        markerData.expire_time = node_->now() + lifetime + rclcpp::Duration(5, 0);
+        markerData.expire_time = Now() + lifetime + rclcpp::Duration(5, 0);
       }
 
       if (markerData.display_type == visualization_msgs::msg::Marker::ARROW)
@@ -299,13 +305,17 @@ namespace mapviz_plugins
           markerData.display_type == visualization_msgs::msg::Marker::TEXT_VIEW_FACING) {
         StampedPoint point;
         point.point = tf2::Vector3(0.0, 0.0, 0.0);
+        point.orientation = orientation;
         point.transformed_point = transform * (markerData.local_transform * point.point);
+        point.transformed_orientation = transform.GetOrientation() * point.orientation;
         point.color = markerData.color;
         markerData.points.push_back(point);
         markerData.text = marker.text;
       } else if (markerData.display_type == visualization_msgs::msg::Marker::CUBE) {
         StampedPoint point;
         point.color = markerData.color;
+        point.orientation = orientation;
+        point.transformed_orientation = transform.GetOrientation() * orientation;
 
         point.point = tf2::Vector3(marker.scale.x / 2, marker.scale.y / 2, 0.0);
         point.transformed_point = transform * (markerData.local_transform * point.point);
@@ -330,6 +340,8 @@ namespace mapviz_plugins
           markerData.display_type == visualization_msgs::msg::Marker::TRIANGLE_LIST) {
         markerData.points.reserve(marker.points.size());
         StampedPoint point;
+        point.orientation = orientation;
+        point.transformed_orientation = transform.GetOrientation() * orientation;
         for (unsigned int i = 0; i < marker.points.size(); i++)
         {
           point.point = tf2::Vector3(marker.points[i].x, marker.points[i].y, marker.points[i].z);
@@ -350,7 +362,7 @@ namespace mapviz_plugins
         }
       } else {
         RCLCPP_WARN_ONCE(
-          node_->get_logger(),
+          Logger(),
           "Unsupported marker type: %d",
           markerData.display_type);
       }
@@ -412,7 +424,7 @@ namespace mapviz_plugins
     point.transformed_arrow_right = point.transformed_arrow_point + right_tf * arrowOffset;
   }
 
-  void MarkerPlugin::handleMarkerArray(visualization_msgs::msg::MarkerArray::ConstSharedPtr markers)
+  void MarkerPlugin::handleMarkerArray(const visualization_msgs::msg::MarkerArray::ConstSharedPtr markers)
   {
     for (const auto & marker : markers->markers)
     {
@@ -454,6 +466,16 @@ namespace mapviz_plugins
 
   void MarkerPlugin::Draw(double x, double y, double scale)
   {
+    // Marker scale is specified in meters (matching RViz), but glLineWidth and
+    // glPointSize take pixels.  Convert using the view scale (meters/pixel),
+    // clamped to at least one pixel so thin primitives stay visible.  When the
+    // user opts into legacy behavior, scale is treated directly as pixels.
+    const bool pixel_scale = ui_.usePixelScale->isChecked();
+    auto width_in_pixels = [pixel_scale, scale](float size_meters) -> float {
+      float pixels = pixel_scale ? size_meters : static_cast<float>(size_meters / scale);
+      return std::max(1.0f, pixels);
+    };
+
     for (size_t i = 0; i < ui_.nsList->count(); i++)
     {
       if (ui_.nsList->item(i)->checkState() == Qt::Checked)
@@ -464,7 +486,7 @@ namespace mapviz_plugins
       }
     }
 
-    rclcpp::Time now = node_->now();
+    rclcpp::Time now = Now();
 
     auto markerIter = markers_.begin();
     while (markerIter != markers_.end())
@@ -493,11 +515,11 @@ namespace mapviz_plugins
       if (marker.display_type == visualization_msgs::msg::Marker::ARROW) {
         if (marker.points.size() == 1) {
           // If the marker only has one point, use scale_y as the arrow width.
-          glLineWidth(marker.scale_y);
+          glLineWidth(width_in_pixels(marker.scale_y));
         } else {
           // If the marker has both start and end points explicitly specified, use
           // scale_x as the shaft diameter.
-          glLineWidth(marker.scale_x);
+          glLineWidth(width_in_pixels(marker.scale_x));
         }
         glBegin(GL_LINES);
 
@@ -526,7 +548,7 @@ namespace mapviz_plugins
 
         glEnd();
       } else if (marker.display_type == visualization_msgs::msg::Marker::LINE_STRIP) {
-        glLineWidth(std::max(1.0f, marker.scale_x));
+        glLineWidth(width_in_pixels(marker.scale_x));
         glBegin(GL_LINE_STRIP);
 
         for (const auto &point : marker.points) {
@@ -539,7 +561,7 @@ namespace mapviz_plugins
 
         glEnd();
       } else if (marker.display_type == visualization_msgs::msg::Marker::LINE_LIST) {
-        glLineWidth(std::max(1.0f, marker.scale_x));
+        glLineWidth(width_in_pixels(marker.scale_x));
         glBegin(GL_LINES);
 
         for (const auto &point : marker.points) {
@@ -552,7 +574,7 @@ namespace mapviz_plugins
 
         glEnd();
       } else if (marker.display_type == visualization_msgs::msg::Marker::POINTS) {
-        glPointSize(std::max(1.0f, marker.scale_x));
+        glPointSize(width_in_pixels(marker.scale_x));
         glBegin(GL_POINTS);
 
         for (const auto &point : marker.points) {
@@ -590,16 +612,23 @@ namespace mapviz_plugins
 
           glVertex2d(marker_x, marker_y);
 
+          // Spheres may be specified w/ only one scale value
+          if (marker.scale_y < 1e-6f) {
+            marker.scale_y = marker.scale_x;
+          }
+
+          double yaw = tf2::getYaw(point.transformed_orientation);
+          double cos_yaw = std::cos(yaw);
+          double sin_yaw = std::sin(yaw);
+
           for (int32_t i = 0; i <= 360; i += 10) {
             double radians =
               static_cast<double>(i) * static_cast<double>(swri_math_util::_deg_2_rad);
-            // Spheres may be specified w/ only one scale value
-            if (marker.scale_y == 0.0) {
-              marker.scale_y = marker.scale_x;
-            }
+            double ellipse_x = std::sin(radians) * marker.scale_x;
+            double ellipse_y = std::cos(radians) * marker.scale_y;
             glVertex2d(
-              marker_x + std::sin(radians) * marker.scale_x,
-              marker_y + std::cos(radians) * marker.scale_y);
+              marker_x + ellipse_x * cos_yaw - ellipse_y * sin_yaw,
+              marker_y + ellipse_x * sin_yaw + ellipse_y * cos_yaw);
           }
 
           glEnd();
@@ -625,7 +654,7 @@ namespace mapviz_plugins
     // Most of the marker drawing is done using OpenGL commands, but text labels
     // are rendered using a QPainter.  This is intended primarily as an example
     // of how the QPainter works.
-    rclcpp::Time now = node_->now();
+    rclcpp::Time now = Now();
 
     // We don't want the text to be rotated or scaled, but we do want it to be
     // translated appropriately.  So, we save off the current world transform
@@ -688,6 +717,7 @@ namespace mapviz_plugins
           for (auto &point : marker.points)
           {
             point.transformed_point = transform * (marker.local_transform * point.point);
+            point.transformed_orientation = transform.GetOrientation() * point.orientation;
           }
         }
       } else {
@@ -699,6 +729,10 @@ namespace mapviz_plugins
   void MarkerPlugin::LoadConfig(const YAML::Node& node, const std::string& path)
   {
     LoadQosConfig(node, qos_);
+    if (node["use_pixel_scale"])
+    {
+      ui_.usePixelScale->setChecked(node["use_pixel_scale"].as<bool>());
+    }
     if (node["topic"])
     {
       std::string topic = TrimString(node["topic"].as<std::string>());
@@ -715,6 +749,10 @@ namespace mapviz_plugins
       << "topic"
       << YAML::Value
       << trimmed;
+    emitter << YAML::Key
+      << "use_pixel_scale"
+      << YAML::Value
+      << ui_.usePixelScale->isChecked();
     SaveQosConfig(emitter, qos_);
   }
 
