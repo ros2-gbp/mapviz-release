@@ -149,11 +149,12 @@ namespace mapviz_plugins
         SIGNAL(TargetFrameChanged(const std::string&)),
         this,
         SLOT(ResetTransformedScans()));
+
   }
 
   void LaserScanPlugin::ClearHistory()
   {
-    RCLCPP_DEBUG(node_->get_logger(), "LaserScan::ClearHistory()");
+    RCLCPP_DEBUG(Logger(), "LaserScan::ClearHistory()");
     scans_.clear();
   }
 
@@ -253,7 +254,7 @@ namespace mapviz_plugins
   void LaserScanPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "sensor_msgs/msg/LaserScan",
       qos_);
     if (!topic.empty())
@@ -284,13 +285,13 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        laserscan_sub_ = node_->create_subscription<sensor_msgs::msg::LaserScan>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&LaserScanPlugin::laserScanCallback, this, std::placeholders::_1)
-        );
+        // Subscribe() delivers each message to handleLaserScan() on the GUI
+        // thread, where plugin state may be touched without locking.
+        Subscribe<sensor_msgs::msg::LaserScan>(
+          topic_, qos, laserscan_sub_,
+          [this](sensor_msgs::msg::LaserScan::ConstSharedPtr msg) { handleLaserScan(msg); });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
@@ -326,7 +327,7 @@ namespace mapviz_plugins
   }
 
   void LaserScanPlugin::updatePreComputedTriginometic(
-    const sensor_msgs::msg::LaserScan::SharedPtr msg)
+    const sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
   {
       if( msg->ranges.size() != prev_ranges_size_ ||
           msg->angle_min !=  prev_angle_min_  ||
@@ -367,7 +368,8 @@ namespace mapviz_plugins
       return has_tranform;
   }
 
-  void LaserScanPlugin::laserScanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+
+  void LaserScanPlugin::handleLaserScan(const sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
   {
     if (!has_message_)
     {
@@ -622,7 +624,7 @@ namespace mapviz_plugins
 
   void LaserScanPlugin::ColorTransformerChanged(int index)
   {
-    RCLCPP_DEBUG(node_->get_logger(), "Color transformer changed to %d", index);
+    RCLCPP_DEBUG(Logger(), "Color transformer changed to %d", index);
     switch (index)
     {
       case COLOR_FLAT:
