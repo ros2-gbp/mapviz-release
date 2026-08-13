@@ -69,14 +69,15 @@ class PosePlugin : public mapviz_plugins::PointDrawingPlugin
     bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
-    void Draw(double x, double y, double scale) override;
-
-    void LoadConfig(const YAML::Node& node, const std::string& path) override;
-    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
-
     QWidget* GetConfigWidget(QWidget* parent) override;
 
   protected:
+    void Draw(double x, double y, double scale) override;
+
+    void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
     void PrintError(const std::string& message) override;
     void PrintInfo(const std::string& message) override;
     void PrintWarning(const std::string& message) override;
@@ -96,8 +97,10 @@ class PosePlugin : public mapviz_plugins::PointDrawingPlugin
     bool has_message_;
 
     void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
-    void PoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr pose);
+    // Called on the GUI thread by Subscribe(); owns all plugin state.
+    void handlePose(const geometry_msgs::msg::PoseStamped::ConstSharedPtr msg);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__POSE_PLUGIN_HPP_
