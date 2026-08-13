@@ -27,11 +27,12 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_QGLMAP_H_
-#define MULTIRES_IMAGE_QGLMAP_H_
+#ifndef MULTIRES_IMAGE_QGLMAP_HPP_
+#define MULTIRES_IMAGE_QGLMAP_HPP_
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLFunctions_1_1>
+#include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QWheelEvent>
 
@@ -40,12 +41,12 @@
 
 #include <tf2/transform_datatypes.hpp>
 
-#include <multires_image/tile.h>
-#include <multires_image/tile_view.h>
+#include <multires_image/tile.hpp>
+#include <multires_image/tile_view.hpp>
 
 namespace multires_image
 {
-  class QGLMap : public QGLWidget
+  class QGLMap : public QOpenGLWidget, protected QOpenGLFunctions_1_1
   {
     Q_OBJECT
 
@@ -107,4 +108,4 @@ namespace multires_image
   };
 }
 
-#endif  // MULTIRES_IMAGE_QGLMAP_H_
+#endif  // MULTIRES_IMAGE_QGLMAP_HPP_
