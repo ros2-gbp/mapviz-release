@@ -53,9 +53,9 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
 find_package(qt_gui_cpp REQUIRED)
-set(QT_VERSION_MAJOR "${qt_gui_cpp_USE_QT_MAJOR_VERSION}")
-find_package(Qt${qt_gui_cpp_USE_QT_MAJOR_VERSION}
-  REQUIRED
+
+set(QT_VERSION_MAJOR 5)
+find_package(Qt5 QUIET
   COMPONENTS
     Concurrent
     Core
@@ -63,17 +63,32 @@ find_package(Qt${qt_gui_cpp_USE_QT_MAJOR_VERSION}
     OpenGL
     Widgets
 )
-
-if(QT_VERSION_MAJOR EQUAL 6)
-  find_package(Qt6
-    REQUIRED
+if(NOT Qt5_FOUND)
+  set(QT_VERSION_MAJOR 6)
+  find_package(Qt6 REQUIRED
     COMPONENTS
+      Concurrent
+      Core
+      Gui
+      OpenGL
       OpenGLWidgets
+      Widgets
   )
 endif()
 
 find_package(geometry_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+
+# image_transport (part of image_common) changed the ImageTransport
+# constructor from taking an rclcpp::Node::SharedPtr to taking an
+# rclcpp::Node& starting with image_common 6.4.0. Detect which API is
+# available so mapviz.cpp can call the correct one.
+if(image_transport_VERSION VERSION_LESS "6.4.0")
+  set(MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF OFF)
+else()
+  set(MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF ON)
+endif()
+
 find_package(mapviz_interfaces REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
@@ -201,6 +216,11 @@ target_compile_definitions(${PROJECT_NAME}_core PRIVATE
   WFlags=WindowFlags
   __STDC_FORMAT_MACROS
 )
+if(MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF)
+  target_compile_definitions(${PROJECT_NAME}_core PRIVATE
+    MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF
+  )
+endif()
 
 set_target_properties(${PROJECT_NAME}_core PROPERTIES
   AUTOMOC ON
