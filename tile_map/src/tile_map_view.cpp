@@ -27,13 +27,9 @@
 //
 // *****************************************************************************
 
-#include <tile_map/tile_map_view.h>
+#include <tile_map/tile_map_view.hpp>
 
 #include <cmath>
-
-#include <GL/glew.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
 
 #include <rclcpp/logging.hpp>
 
@@ -41,7 +37,7 @@
 #include <swri_math_util/trig_util.h>
 #include <swri_transform_util/earth_constants.h>
 
-#include <tile_map/image_cache.h>
+#include <tile_map/image_cache.hpp>
 
 namespace tile_map
 {
@@ -222,6 +218,8 @@ namespace tile_map
           }
         }
       }
+
+      tile_cache_->IncrementFrame();
     }
   }
 
@@ -239,7 +237,7 @@ namespace tile_map
 
       if (texture)
       {
-        glBindTexture(GL_TEXTURE_2D, texture->id);
+        texture->GetTexture()->bind();
 
         glBegin(GL_TRIANGLES);
 
@@ -273,13 +271,17 @@ namespace tile_map
 
         glEnd();
 
-        glBindTexture(GL_TEXTURE_2D, 0);
+        texture->GetTexture()->release();
       }
     }
   }
 
   void TileMapView::Draw()
   {
+    if (!gl_initialized_) {
+      initializeOpenGLFunctions();
+      gl_initialized_ = true;
+    }
     if (!tile_source_)
     {
       return;
