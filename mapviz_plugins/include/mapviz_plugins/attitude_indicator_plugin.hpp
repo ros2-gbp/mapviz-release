@@ -72,16 +72,17 @@ class AttitudeIndicatorPlugin : public mapviz::MapvizPlugin,
   bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override;
 
+  QWidget* GetConfigWidget(QWidget* parent) override;
+
+ protected:
   void Draw(double x, double y, double scale) override;
 
   void Transform() override {}
 
   void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
   void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
 
-  QWidget* GetConfigWidget(QWidget* parent) override;
-
- protected:
   void PrintError(const std::string& message) override;
   void PrintInfo(const std::string& message) override;
   void PrintWarning(const std::string& message) override;
@@ -97,9 +98,10 @@ class AttitudeIndicatorPlugin : public mapviz::MapvizPlugin,
    void TopicEdited();
 
  private:
-  void AttitudeCallbackImu(sensor_msgs::msg::Imu::ConstSharedPtr imu);
-  void AttitudeCallbackOdom(nav_msgs::msg::Odometry::ConstSharedPtr odometry);
-  void AttitudeCallbackPose(geometry_msgs::msg::Pose::ConstSharedPtr pose);
+  // Called on the GUI thread by Subscribe(); owns all plugin state.
+  void handleImu(const sensor_msgs::msg::Imu::ConstSharedPtr imu);
+  void handleOdometry(const nav_msgs::msg::Odometry::ConstSharedPtr odometry);
+  void handlePose(const geometry_msgs::msg::Pose::ConstSharedPtr pose);
   void applyAttitudeOrientation(const geometry_msgs::msg::Quaternion &orientation);
   void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
 
@@ -117,4 +119,5 @@ class AttitudeIndicatorPlugin : public mapviz::MapvizPlugin,
   Ui::attitude_indicator_config ui_{};
 };  // class AttitudeIndicatorPlugin
 }  // namespace mapviz_plugins
+
 #endif  // MAPVIZ_PLUGINS__ATTITUDE_INDICATOR_PLUGIN_HPP_

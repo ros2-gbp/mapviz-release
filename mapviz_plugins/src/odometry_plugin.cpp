@@ -107,7 +107,7 @@ namespace mapviz_plugins
   void OdometryPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "nav_msgs/msg/Odometry",
       qos_);
     if (!topic.empty())
@@ -138,19 +138,22 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        odometry_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&OdometryPlugin::odometryCallback, this, std::placeholders::_1));
+        // Subscribe() delivers each message to handleOdometry() on the GUI
+        // thread, so plugin state may be touched there without locking.
+        Subscribe<nav_msgs::msg::Odometry>(
+          topic_, qos, odometry_sub_,
+          [this](nav_msgs::msg::Odometry::ConstSharedPtr odometry) {
+            handleOdometry(odometry);
+          });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
 
   }
 
-  void OdometryPlugin::odometryCallback(
-      const nav_msgs::msg::Odometry::SharedPtr odometry)
+  void OdometryPlugin::handleOdometry(
+      const nav_msgs::msg::Odometry::ConstSharedPtr odometry)
   {
     if (!has_message_)
     {
@@ -199,9 +202,17 @@ namespace mapviz_plugins
           stamped_point.cov_points = swri_image_util::GetEllipsePoints(
               cov_matrix_2d, stamped_point.point, 3, 32);
 
+          // GetEllipsePoints returns points with z set to zero rather than
+          // the center's z; restore the odometry z so the ellipse stays
+          // centered on the point through 3D transforms.
+          for (auto& cov_point : stamped_point.cov_points)
+          {
+            cov_point.setZ(stamped_point.point.z());
+          }
+
           stamped_point.transformed_cov_points = stamped_point.cov_points;
         } else {
-          RCLCPP_ERROR(node_->get_logger(), "Failed to project x, y, z covariance to xy-plane.");
+          RCLCPP_ERROR(Logger(), "Failed to project x, y, z covariance to xy-plane.");
         }
       }
     }

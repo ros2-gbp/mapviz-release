@@ -95,14 +95,6 @@ public:
   bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
-  void Draw(double x, double y, double scale) override;
-  void Paint(QPainter* painter, double x, double y, double scale) override;
-
-  void Transform() override;
-
-  void LoadConfig(const YAML::Node& node, const std::string& path) override;
-  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
-
   QWidget* GetConfigWidget(QWidget* parent) override;
 
   bool SupportsPainting() override
@@ -111,6 +103,16 @@ public:
   }
 
 protected:
+  void Draw(double x, double y, double scale) override;
+
+  void Paint(QPainter* painter, double x, double y, double scale) override;
+
+  void Transform() override;
+
+  void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
   void PrintError(const std::string& message) override;
   void PrintInfo(const std::string& message) override;
   void PrintWarning(const std::string& message) override;
@@ -120,6 +122,11 @@ protected Q_SLOTS:
   void SelectTopic();
   void TopicEdited();
   void ClearHistory() override;
+
+private:
+  // Called on the GUI thread by Subscribe(); owns all plugin state.
+  void handleMarker(const visualization_msgs::msg::Marker::ConstSharedPtr marker);
+  void handleMarkerArray(const visualization_msgs::msg::MarkerArray::ConstSharedPtr markers);
 
 private:
   struct Color
@@ -133,6 +140,7 @@ private:
     tf2::Quaternion orientation;
 
     tf2::Vector3 transformed_point;
+    tf2::Quaternion transformed_orientation;
 
     tf2::Vector3 arrow_point;
     tf2::Vector3 transformed_arrow_point;
@@ -177,13 +185,12 @@ private:
   std::unordered_map<MarkerId, MarkerData, MarkerIdHash> markers_;
   std::unordered_map<std::string, bool, MarkerNsHash> marker_visible_;
 
-  void handleMarker(visualization_msgs::msg::Marker::ConstSharedPtr marker);
-  void handleMarkerArray(visualization_msgs::msg::MarkerArray::ConstSharedPtr markers);
   void processMarker(const visualization_msgs::msg::Marker& marker);
   void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
   void transformArrow(MarkerData& markerData,
                       const swri_transform_util::Transform& transform);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__MARKER_PLUGIN_HPP_

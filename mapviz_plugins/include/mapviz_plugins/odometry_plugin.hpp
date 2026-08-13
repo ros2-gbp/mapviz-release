@@ -65,11 +65,6 @@ class OdometryPlugin : public mapviz_plugins::PointDrawingPlugin
     bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
-    void Paint(QPainter* painter, double x, double y, double scale) override;
-    void Draw(double x, double y, double scale) override;
-    void LoadConfig(const YAML::Node& node, const std::string& path) override;
-    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
-
     QWidget* GetConfigWidget(QWidget* parent) override;
 
     bool SupportsPainting() override
@@ -78,6 +73,14 @@ class OdometryPlugin : public mapviz_plugins::PointDrawingPlugin
     }
 
   protected:
+    void Paint(QPainter* painter, double x, double y, double scale) override;
+
+    void Draw(double x, double y, double scale) override;
+
+    void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
     void PrintError(const std::string& message) override;
     void PrintInfo(const std::string& message) override;
     void PrintWarning(const std::string& message) override;
@@ -93,10 +96,12 @@ class OdometryPlugin : public mapviz_plugins::PointDrawingPlugin
     rmw_qos_profile_t qos_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_sub_;
     bool has_message_;
-    void odometryCallback(const nav_msgs::msg::Odometry::SharedPtr odometry);
+    // Called on the GUI thread by Subscribe(); owns all plugin state.
+    void handleOdometry(nav_msgs::msg::Odometry::ConstSharedPtr odometry);
     void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__ODOMETRY_PLUGIN_HPP_
 

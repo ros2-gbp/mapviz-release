@@ -46,13 +46,22 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rmw/qos_profiles.h>
 
+#ifdef MAPVIZ_HAVE_URDF_MODEL_HPP
+#include <urdf/model.hpp>
+#else
 #include <urdf/model.h>
+#endif
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include <ament_index_cpp/version.h>
+#if AMENT_INDEX_CPP_VERSION_GTE(1, 13, 0)
+#include <ament_index_cpp/get_package_share_path.hpp>
+#else
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#endif
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
@@ -87,7 +96,11 @@ std::string resolveUri(const std::string& uri)
     const std::string pkg = no_scheme.substr(0, slash);
     const std::string rel = no_scheme.substr(slash + 1);
     try {
+#if AMENT_INDEX_CPP_VERSION_GTE(1, 13, 0)
+      return (ament_index_cpp::get_package_share_path(pkg) / rel).string();
+#else
       return ament_index_cpp::get_package_share_directory(pkg) + "/" + rel;
+#endif
     } catch (...) {
       return {};
     }
@@ -544,7 +557,7 @@ void RobotModelPlugin::DrawIcon() {
 
 void RobotModelPlugin::SelectTopic() {
   auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_, "std_msgs/msg/String", rmw_qos_profile_default);
+      TopicSource(), "std_msgs/msg/String", rmw_qos_profile_default);
   (void)qos;
   if (!topic.empty()) {
     ui_.topic->setText(QString::fromStdString(topic));
@@ -626,24 +639,29 @@ void RobotModelPlugin::TopicEdited() {
 
   description_sub_.reset();
 
-  if (topic_.empty() || !node_) {
+  if (topic_.empty()) {
     PrintWarning("No topic.");
     return;
   }
 
   // robot_description is latched: use transient_local so we receive the
-  // last-published value immediately on subscribe.
-  auto qos = rclcpp::QoS(1).transient_local().reliable();
-  description_sub_ = node_->create_subscription<std_msgs::msg::String>(
-      topic_, qos,
-      std::bind(&RobotModelPlugin::robotDescriptionCallback, this,
-                std::placeholders::_1));
+  // last-published value immediately on subscribe.  Subscribe() delivers each
+  // message to handleDescription() on the GUI thread.
+  rmw_qos_profile_t qos = rmw_qos_profile_default;
+  qos.depth = 1;
+  qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  qos.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+  Subscribe<std_msgs::msg::String>(
+      topic_, qos, description_sub_,
+      [this](std_msgs::msg::String::ConstSharedPtr msg) {
+        handleDescription(msg);
+      });
   PrintWarning("Waiting for description on " + topic_);
 }
 
-void RobotModelPlugin::robotDescriptionCallback(
-    const std_msgs::msg::String::SharedPtr msg) {
-  parseUrdf(msg->data);
+void RobotModelPlugin::handleDescription(
+    const std_msgs::msg::String::ConstSharedPtr description) {
+  parseUrdf(description->data);
 }
 
 void RobotModelPlugin::parseUrdf(const std::string& xml) {

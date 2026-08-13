@@ -65,14 +65,15 @@ class PathPlugin : public mapviz_plugins::PointDrawingPlugin
     bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
-    void Draw(double x, double y, double scale) override;
-
-    void LoadConfig(const YAML::Node& node, const std::string& path) override;
-    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
-
     QWidget* GetConfigWidget(QWidget* parent) override;
 
   protected:
+    void Draw(double x, double y, double scale) override;
+
+    void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
     void PrintError(const std::string& message) override;
     void PrintInfo(const std::string& message) override;
     void PrintWarning(const std::string& message) override;
@@ -81,6 +82,10 @@ class PathPlugin : public mapviz_plugins::PointDrawingPlugin
     void SelectTopic();
     void TopicEdited();
   
+
+  private Q_SLOTS:
+    void handlePath(const nav_msgs::msg::Path::ConstSharedPtr msg);
+
   private:
     Ui::path_config ui_;
     QWidget* config_widget_;
@@ -92,8 +97,8 @@ class PathPlugin : public mapviz_plugins::PointDrawingPlugin
     bool has_message_;
 
     void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
-    void pathCallback(const nav_msgs::msg::Path::SharedPtr path);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__PATH_PLUGIN_HPP_

@@ -93,7 +93,7 @@ namespace mapviz_plugins
   void GpsPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "gps_msgs/msg/GPSFix",
       qos_);
     if (!topic.empty())
@@ -124,17 +124,19 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        gps_sub_ = node_->create_subscription<gps_msgs::msg::GPSFix>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&GpsPlugin::GPSFixCallback, this, std::placeholders::_1));
+        // Subscribe() delivers each message to handleGpsFix() on the GUI
+        // thread, where plugin state may be touched without locking.
+        Subscribe<gps_msgs::msg::GPSFix>(
+          topic_, qos, gps_sub_,
+          [this](gps_msgs::msg::GPSFix::ConstSharedPtr msg) { handleGpsFix(msg); });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void GpsPlugin::GPSFixCallback(const gps_msgs::msg::GPSFix::SharedPtr gps)
+
+  void GpsPlugin::handleGpsFix(const gps_msgs::msg::GPSFix::ConstSharedPtr gps)
   {
     if (!tf_manager_->LocalXyUtil()->Initialized())
     {

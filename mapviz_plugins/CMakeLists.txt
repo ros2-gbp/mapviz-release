@@ -50,6 +50,18 @@ find_package(cv_bridge REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(gps_msgs REQUIRED)
 find_package(image_transport REQUIRED)
+
+# image_transport (part of image_common) changed the ImageTransport
+# constructor, and the create_subscription() free function, from taking
+# rclcpp::Node::SharedPtr / rclcpp::Node* to taking rclcpp::Node& starting
+# with image_common 6.4.0. Detect which API is available so the plugins can
+# call the correct one.
+if(image_transport_VERSION VERSION_LESS "6.4.0")
+  set(MAPVIZ_PLUGINS_IMAGE_TRANSPORT_TAKES_NODE_REF OFF)
+else()
+  set(MAPVIZ_PLUGINS_IMAGE_TRANSPORT_TAKES_NODE_REF ON)
+endif()
+
 find_package(map_msgs REQUIRED)
 find_package(mapviz REQUIRED)
 find_package(marti_common_msgs REQUIRED)
@@ -74,13 +86,44 @@ find_package(assimp REQUIRED)
 find_package(urdf REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
-### QT ###
-set(QT_VERSION_MAJOR "${qt_gui_cpp_USE_QT_MAJOR_VERSION}")
-set(MAPVIZ_PLUGINS_QT_COMPONENTS Core Gui OpenGL Widgets)
-if(QT_VERSION_MAJOR EQUAL 6)
-  list(APPEND MAPVIZ_PLUGINS_QT_COMPONENTS OpenGLWidgets)
+# The move_base plugin drives Nav2's NavigateToPose action.  Nav2 is an
+# optional dependency: build the plugin only when nav2_msgs is present, so
+# mapviz_plugins itself does not force a dependency on the Nav2 stack.
+find_package(nav2_msgs QUIET)
+if(nav2_msgs_FOUND)
+  find_package(rclcpp_action REQUIRED)
+  message(STATUS "mapviz_plugins: nav2_msgs found; building the move_base plugin")
+else()
+  message(STATUS "mapviz_plugins: nav2_msgs not found; skipping the move_base plugin")
 endif()
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${MAPVIZ_PLUGINS_QT_COMPONENTS})
+
+# urdf renamed model.h to model.hpp in some distros (not yet in ROS Humble).
+# Detect which header is actually available rather than assuming by distro.
+include(CheckIncludeFileCXX)
+set(CMAKE_REQUIRED_INCLUDES ${urdf_INCLUDE_DIRS})
+check_include_file_cxx("urdf/model.hpp" MAPVIZ_PLUGINS_HAVE_URDF_MODEL_HPP)
+unset(CMAKE_REQUIRED_INCLUDES)
+
+### QT ###
+set(QT_VERSION_MAJOR 5)
+find_package(Qt5 QUIET
+  COMPONENTS
+    Core
+    Gui
+    OpenGL
+    Widgets
+)
+if(NOT Qt5_FOUND)
+  set(QT_VERSION_MAJOR 6)
+  find_package(Qt6 REQUIRED
+    COMPONENTS
+      Core
+      Gui
+      OpenGL
+      OpenGLWidgets
+      Widgets
+  )
+endif()
 
 find_package(OpenCV QUIET CONFIG COMPONENTS core imgproc highgui)
 if(NOT OpenCV_FOUND)
@@ -186,6 +229,13 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/tf_frame_plugin.hpp
   include/${PROJECT_NAME}/topic_select.hpp)
 
+# Append the optional move_base plugin's files only when Nav2 is available.
+if(nav2_msgs_FOUND)
+  list(APPEND UI_FILES ui/move_base_config.ui)
+  list(APPEND SRC_FILES src/move_base_plugin.cpp)
+  list(APPEND HEADER_FILES include/${PROJECT_NAME}/move_base_plugin.hpp)
+endif()
+
 set(MAPVIZ_PLUGINS_QT_LIBRARIES
   Qt${QT_VERSION_MAJOR}::Core
   Qt${QT_VERSION_MAJOR}::Gui
@@ -234,6 +284,16 @@ if ("$ENV{ROS_DISTRO}" STRLESS "iron")
   target_compile_definitions(${PROJECT_NAME} PRIVATE USE_CVBRIDGE_H_FILES)
 endif()
 
+if(MAPVIZ_PLUGINS_IMAGE_TRANSPORT_TAKES_NODE_REF)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
+    MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF
+  )
+endif()
+
+if(MAPVIZ_PLUGINS_HAVE_URDF_MODEL_HPP)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE MAPVIZ_HAVE_URDF_MODEL_HPP)
+endif()
+
 target_link_libraries(${PROJECT_NAME} PUBLIC
     ament_index_cpp::ament_index_cpp
     cv_bridge::cv_bridge
@@ -267,6 +327,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
+# Link the optional move_base plugin's dependencies when it is being built.
+if(nav2_msgs_FOUND)
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    ${nav2_msgs_TARGETS}
+    rclcpp_action::rclcpp_action)
+endif()
+
 ### Install the plugins ###
 install(DIRECTORY include/
   DESTINATION include/${PROJECT_NAME}
@@ -283,6 +350,12 @@ install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib)
 
 pluginlib_export_plugin_description_file(mapviz mapviz_plugins.xml)
+
+# Register and export the move_base plugin only when it was built.
+if(nav2_msgs_FOUND)
+  pluginlib_export_plugin_description_file(mapviz move_base_plugin.xml)
+  ament_export_dependencies(nav2_msgs rclcpp_action)
+endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(

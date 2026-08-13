@@ -58,14 +58,15 @@ class GpsPlugin : public mapviz_plugins::PointDrawingPlugin
     bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
-    void Draw(double x, double y, double scale) override;
-
-    void LoadConfig(const YAML::Node& node, const std::string& path) override;
-    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
-
     QWidget* GetConfigWidget(QWidget* parent) override;
 
   protected:
+    void Draw(double x, double y, double scale) override;
+
+    void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
     void PrintError(const std::string& message) override;
     void PrintInfo(const std::string& message) override;
     void PrintWarning(const std::string& message) override;
@@ -73,6 +74,10 @@ class GpsPlugin : public mapviz_plugins::PointDrawingPlugin
   protected Q_SLOTS:
     void SelectTopic();
     void TopicEdited();
+
+
+  private Q_SLOTS:
+    void handleGpsFix(const gps_msgs::msg::GPSFix::ConstSharedPtr msg);
 
   private:
     Ui::gps_config ui_;
@@ -85,9 +90,9 @@ class GpsPlugin : public mapviz_plugins::PointDrawingPlugin
     rclcpp::Subscription<gps_msgs::msg::GPSFix>::SharedPtr gps_sub_;
     bool has_message_;
 
-    void GPSFixCallback(const gps_msgs::msg::GPSFix::SharedPtr gps);
     void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__GPS_PLUGIN_HPP_

@@ -80,7 +80,7 @@ namespace mapviz_plugins
   void PathPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "nav_msgs/msg/Path",
       qos_);
     if (!topic.empty())
@@ -111,17 +111,18 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        path_sub_ = node_->create_subscription<nav_msgs::msg::Path>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&PathPlugin::pathCallback, this, std::placeholders::_1)
-        );
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        // Subscribe() delivers each message to handlePath() on the GUI
+        // thread, where plugin state may be touched without locking.
+        Subscribe<nav_msgs::msg::Path>(
+          topic_, qos, path_sub_,
+          [this](nav_msgs::msg::Path::ConstSharedPtr msg) { handlePath(msg); });
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void PathPlugin::pathCallback(const nav_msgs::msg::Path::SharedPtr path)
+
+  void PathPlugin::handlePath(const nav_msgs::msg::Path::ConstSharedPtr path)
   {
     if (!has_message_)
     {

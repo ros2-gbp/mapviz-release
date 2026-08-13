@@ -194,6 +194,7 @@ namespace mapviz_plugins
       SIGNAL(currentTextChanged(const QString &)),
       this,
       SLOT(colorSchemeUpdated(const QString &)));
+
   }
 
   void OccupancyGridPlugin::DrawIcon()
@@ -231,7 +232,7 @@ namespace mapviz_plugins
   void OccupancyGridPlugin::SelectTopicGrid()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "nav_msgs/msg/OccupancyGrid",
       qos_);
     if (!topic.empty())
@@ -262,18 +263,23 @@ namespace mapviz_plugins
 
       if (!topic.empty())
       {
-        grid_sub_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
-          topic,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&OccupancyGridPlugin::Callback, this, std::placeholders::_1));
+        // Subscribe() delivers each message to handleGrid()/handleGridUpdate()
+        // on the GUI thread, where plugin state, the GL texture, and the
+        // color-scheme widget may be touched without locking.
+        Subscribe<nav_msgs::msg::OccupancyGrid>(
+          topic, qos, grid_sub_,
+          [this](nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg) {
+            handleGrid(msg);
+          });
         if(ui_.checkbox_update->isChecked())
         {
-          update_sub_ = node_->create_subscription<map_msgs::msg::OccupancyGridUpdate>(
-            topic,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&OccupancyGridPlugin::CallbackUpdate, this, std::placeholders::_1));
+          Subscribe<map_msgs::msg::OccupancyGridUpdate>(
+            topic, qos, update_sub_,
+            [this](map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr msg) {
+              handleGridUpdate(msg);
+            });
         }
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic.c_str());
       }
     }
   }
@@ -285,10 +291,13 @@ namespace mapviz_plugins
 
     if (ui_.checkbox_update)
     {
-      update_sub_ = node_->create_subscription<map_msgs::msg::OccupancyGridUpdate>(
-        topic,
-        rclcpp::QoS(10),
-        std::bind(&OccupancyGridPlugin::CallbackUpdate, this, std::placeholders::_1));
+      rmw_qos_profile_t update_qos = rmw_qos_profile_default;
+      update_qos.depth = 10;
+      Subscribe<map_msgs::msg::OccupancyGridUpdate>(
+        topic, update_qos, update_sub_,
+        [this](map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr msg) {
+          handleGridUpdate(msg);
+        });
     }
   }
 
@@ -372,7 +381,7 @@ namespace mapviz_plugins
     canvas_->doneCurrent();
   }
 
-  void OccupancyGridPlugin::Callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+  void OccupancyGridPlugin::handleGrid(const nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg)
   {
     grid_ = msg;
     const int width  = grid_->info.width;
@@ -417,7 +426,8 @@ namespace mapviz_plugins
     PrintInfo("Map received");
   }
 
-  void OccupancyGridPlugin::CallbackUpdate(const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg)
+  void OccupancyGridPlugin::handleGridUpdate(
+      const map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr msg)
   {
     PrintInfo("Update Received");
 
@@ -465,6 +475,32 @@ namespace mapviz_plugins
       glTranslatef( grid_->info.origin.position.x,
             grid_->info.origin.position.y,
             0.0);
+
+      // Apply the map origin's orientation.  RViz honors this, so ignoring it
+      // here makes maps with a rotated origin (e.g. a non-zero yaw) disagree
+      // with RViz.
+      tf2::Quaternion origin_orientation(
+            grid_->info.origin.orientation.x,
+            grid_->info.origin.orientation.y,
+            grid_->info.origin.orientation.z,
+            grid_->info.origin.orientation.w);
+      // A default-constructed (all-zero) quaternion is invalid; treat it as
+      // identity so maps that leave the orientation unset render as before.
+      if (origin_orientation.length2() < 1.0e-6)
+      {
+        origin_orientation = tf2::Quaternion(0.0, 0.0, 0.0, 1.0);
+      }
+      else
+      {
+        origin_orientation.normalize();
+      }
+
+      tf2Scalar origin_yaw, origin_pitch, origin_roll;
+      tf2::Matrix3x3(origin_orientation).getEulerYPR(origin_yaw, origin_pitch, origin_roll);
+
+      glRotatef(origin_pitch * RAD_TO_DEG, 0, 1, 0);
+      glRotatef(origin_roll  * RAD_TO_DEG, 1, 0, 0);
+      glRotatef(origin_yaw   * RAD_TO_DEG, 0, 0, 1);
 
       glScalef( resolution, resolution, 1.0);
 

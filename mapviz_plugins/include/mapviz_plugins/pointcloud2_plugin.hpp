@@ -37,7 +37,6 @@
 #include <QOpenGLFunctions_1_5>
 #include <QOpenGLWidget>
 #include <QColor>
-#include <QMutex>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
@@ -72,6 +71,27 @@ public:
     COLOR_Z = 3
   };
 
+  struct StampedPoint
+  {
+    tf2::Vector3 point;
+    std::vector<float> features;
+  };
+
+  // Public so a shared_ptr to a decoded scan can be carried by a queued
+  // signal from the ROS spin thread to the GUI thread.
+  struct Scan
+  {
+    rclcpp::Time stamp;
+    QColor color;
+    std::vector<StampedPoint> points;
+    std::string source_frame;
+    bool transformed;
+    std::map<std::string, FieldInfo> new_features;
+
+    std::vector<float> gl_point;
+    std::vector<uint8_t> gl_color;
+  };
+
   PointCloud2Plugin();
   ~PointCloud2Plugin() override = default;
 
@@ -80,16 +100,17 @@ public:
 
   void ClearHistory() override;
 
+  QWidget* GetConfigWidget(QWidget* parent) override;
+
+protected:
   void Draw(double x, double y, double scale) override;
 
   void Transform() override;
 
   void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
   void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
 
-  QWidget* GetConfigWidget(QWidget* parent) override;
-
-protected:
   void PrintError(const std::string& message) override;
   void PrintInfo(const std::string& message) override;
   void PrintWarning(const std::string& message) override;
@@ -112,30 +133,25 @@ protected Q_SLOTS:
   void SetSubscription(bool subscribe);
 
 private:
-  struct StampedPoint
-  {
-    tf2::Vector3 point;
-    std::vector<float> features;
-  };
-
-  struct Scan
-  {
-    rclcpp::Time stamp;
-    QColor color;
-    std::vector<StampedPoint> points;
-    std::string source_frame;
-    bool transformed;
-    std::map<std::string, FieldInfo> new_features;
-
-    std::vector<float> gl_point;
-    std::vector<uint8_t> gl_color;
-  };
-
-  float PointFeature(const uint8_t*, const FieldInfo&);
+  // Decodes the raw cloud on the ROS spin thread; static (a Subscribe()
+  // function pointer) so it cannot touch plugin state.  Returns an empty
+  // (feature-less) Scan for malformed clouds.
+  static Scan DecodeScan(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg);
+  static float PointFeature(const uint8_t*, const FieldInfo&);
+  // Runs on the GUI thread via Subscribe(); owns scans_ and everything
+  // configuration-dependent.
+  void handleScan(std::shared_ptr<mapviz_plugins::PointCloud2Plugin::Scan> scan);
   void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
-  void PointCloud2Callback(const sensor_msgs::msg::PointCloud2::SharedPtr scan);
   QColor CalculateColor(const StampedPoint& point);
+  void ColorScan(Scan& scan);
   void UpdateMinMaxWidgets();
+  // In auto mode, recomputes min_value_/max_value_ over the buffered scans for
+  // the active color transformer and mirrors them into the min/max spin boxes,
+  // so the computed bounds are visible and become the starting point for manual
+  // tuning when "Use Auto Max/Min" is switched back off.  Returns true if the
+  // range moved, which invalidates the colors of every buffered scan.  No-op
+  // returning false unless auto mode is on.
+  bool UpdateAutoRange();
 
   Ui::PointCloud2_config ui_{};
   QWidget* config_widget_;
@@ -147,14 +163,11 @@ private:
   double min_value_;
   size_t point_size_;
   size_t buffer_size_;
-  bool new_topic_;
   bool has_message_;
   size_t num_of_feats_;
   bool need_new_list_;
   std::string saved_color_transformer_;
   bool need_minmax_;
-  std::vector<double> max_;
-  std::vector<double> min_;
   // Use a list instead of a deque for scans to facilitate removing
   // timed-out scans in the middle of the list in case I ever re-implement
   // decay time (evenator)
@@ -163,8 +176,6 @@ private:
 
   QOpenGLBuffer point_buffer_;
   QOpenGLBuffer color_buffer_;
-
-  QMutex scan_mutex_;
 };
 }   // namespace mapviz_plugins
 

@@ -92,6 +92,7 @@ namespace mapviz_plugins
                      SLOT(PositionTopicEdited()));
     QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this,
                      SLOT(SetDrawStyle(QString)));
+
     QObject::connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
                      SLOT(DrawIcon()));
   }
@@ -139,7 +140,7 @@ namespace mapviz_plugins
   void RoutePlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "marti_nav_msgs/msg/Route",
       qos_);
 
@@ -152,7 +153,7 @@ namespace mapviz_plugins
   void RoutePlugin::SelectPositionTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "marti_nav_msgs/msg/RoutePosition",
       position_qos_);
 
@@ -178,14 +179,15 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        route_sub_ =
-            node_->create_subscription<marti_nav_msgs::msg::Route>(
-              topic_,
-              rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-              std::bind(&RoutePlugin::RouteCallback, this, std::placeholders::_1)
-            );
+        // Subscribe() delivers each message to handleRoute() on the GUI
+        // thread, where plugin state may be touched without locking.
+        Subscribe<marti_nav_msgs::msg::Route>(
+            topic_, qos, route_sub_,
+            [this](marti_nav_msgs::msg::Route::ConstSharedPtr msg) {
+              handleRoute(msg);
+            });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
@@ -208,27 +210,27 @@ namespace mapviz_plugins
       {
         position_topic_ = topic;
         position_qos_ = qos;
-        position_sub_ = node_->create_subscription<marti_nav_msgs::msg::RoutePosition>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&RoutePlugin::PositionCallback, this, std::placeholders::_1)
-        );
+        Subscribe<marti_nav_msgs::msg::RoutePosition>(
+          topic_, qos, position_sub_,
+          [this](marti_nav_msgs::msg::RoutePosition::ConstSharedPtr msg) {
+            handleRoutePosition(msg);
+          });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", position_topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", position_topic_.c_str());
       }
     }
 
   }
 
-  void RoutePlugin::PositionCallback(
-      const marti_nav_msgs::msg::RoutePosition::SharedPtr msg)
+  void RoutePlugin::handleRoutePosition(
+      const marti_nav_msgs::msg::RoutePosition::ConstSharedPtr position)
   {
-    src_route_position_ = msg;
+    src_route_position_ = position;
   }
 
-  void RoutePlugin::RouteCallback(const marti_nav_msgs::msg::Route::SharedPtr msg)
+  void RoutePlugin::handleRoute(const marti_nav_msgs::msg::Route::ConstSharedPtr route)
   {
-    src_route_ = sru::Route(*msg);
+    src_route_ = sru::Route(*route);
   }
 
   void RoutePlugin::PrintError(const std::string& message)

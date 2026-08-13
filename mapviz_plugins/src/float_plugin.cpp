@@ -317,7 +317,7 @@ namespace mapviz_plugins
     topics.emplace_back("marti_common_msgs/msg/Float64Stamped");
     topics.emplace_back("marti_sensor_msgs/msg/Velocity");
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       topics,
       qos_);
     if (!topic.empty())
@@ -350,36 +350,35 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic.empty())
       {
-        float32_sub_ = node_->create_subscription<std_msgs::msg::Float32>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            [this](const std_msgs::msg::Float32::ConstSharedPtr msg) {
-          floatCallback(msg->data);
-        });
-        float64_sub_ = node_->create_subscription<std_msgs::msg::Float64>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            [this](const std_msgs::msg::Float64::ConstSharedPtr msg) {
-          floatCallback(msg->data);
-        });
-        float32_stamped_sub_ = node_->create_subscription<marti_common_msgs::msg::Float32Stamped>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            [this](const marti_common_msgs::msg::Float32Stamped::ConstSharedPtr msg) {
-          floatCallback(msg->value);
-        });
-        float64_stamped_sub_ = node_->create_subscription<marti_common_msgs::msg::Float64Stamped>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            [this](const marti_common_msgs::msg::Float64Stamped::ConstSharedPtr msg) {
-          floatCallback(msg->value);
-        });
-        velocity_sub_ = node_->create_subscription<marti_sensor_msgs::msg::Velocity>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            [this](const marti_sensor_msgs::msg::Velocity::ConstSharedPtr msg) {
-          floatCallback(msg->velocity);
-        });
+        // Subscribe() delivers each message to handleFloat() on the GUI
+        // thread, where plugin state may be touched without locking.  Only one
+        // of these subscriptions will actually receive data, depending on the
+        // topic's type.
+        Subscribe<std_msgs::msg::Float32>(
+          topic_, qos, float32_sub_,
+          [this](std_msgs::msg::Float32::ConstSharedPtr msg) {
+            handleFloat(msg->data);
+          });
+        Subscribe<std_msgs::msg::Float64>(
+          topic_, qos, float64_sub_,
+          [this](std_msgs::msg::Float64::ConstSharedPtr msg) {
+            handleFloat(msg->data);
+          });
+        Subscribe<marti_common_msgs::msg::Float32Stamped>(
+          topic_, qos, float32_stamped_sub_,
+          [this](marti_common_msgs::msg::Float32Stamped::ConstSharedPtr msg) {
+            handleFloat(msg->value);
+          });
+        Subscribe<marti_common_msgs::msg::Float64Stamped>(
+          topic_, qos, float64_stamped_sub_,
+          [this](marti_common_msgs::msg::Float64Stamped::ConstSharedPtr msg) {
+            handleFloat(msg->value);
+          });
+        Subscribe<marti_sensor_msgs::msg::Velocity>(
+          topic_, qos, velocity_sub_,
+          [this](marti_sensor_msgs::msg::Velocity::ConstSharedPtr msg) {
+            handleFloat(msg->velocity);
+          });
       }
     }
 
@@ -447,7 +446,7 @@ namespace mapviz_plugins
     offset_y_ = offset;
   }
 
-  void FloatPlugin::floatCallback(double value)
+  void FloatPlugin::handleFloat(double value)
   {
 
     std::string str = std::to_string(value);
