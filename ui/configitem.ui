@@ -619,6 +619,12 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <family>Ubuntu</family>
@@ -719,7 +725,7 @@
   <customwidget>
    <class>mapviz::DoubleClickWidget</class>
    <extends>QWidget</extends>
-   <header>mapviz/widgets.h</header>
+   <header>mapviz/widgets.hpp</header>
    <container>1</container>
    <slots>
     <signal>DoubleClicked()</signal>
@@ -729,12 +735,12 @@
   <customwidget>
    <class>mapviz::SingleClickLabel</class>
    <extends>QLabel</extends>
-   <header>mapviz/widgets.h</header>
+   <header>mapviz/widgets.hpp</header>
   </customwidget>
   <customwidget>
    <class>mapviz::IconWidget</class>
    <extends>QWidget</extends>
-   <header>mapviz/widgets.h</header>
+   <header>mapviz/widgets.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
