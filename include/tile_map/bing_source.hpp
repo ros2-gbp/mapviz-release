@@ -31,7 +31,7 @@
 #ifndef TILE_MAP_BING_SOURCE_H
 #define TILE_MAP_BING_SOURCE_H
 
-#include "tile_source.h"
+#include "tile_source.hpp"
 
 #include <random>
 #include <string>
