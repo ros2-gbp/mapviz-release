@@ -72,12 +72,6 @@ class RoutePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
     bool Initialize(QOpenGLWidget* canvas) override;
     void Shutdown() override {}
 
-    void Draw(double x, double y, double scale) override;
-
-    void Transform() override {}
-
-    void LoadConfig(const YAML::Node& node, const std::string& path) override;
-    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
     void DrawStopWaypoint(double x, double y);
     void DrawRoute(const swri_route_util::Route &route);
     void DrawRoutePoint(const swri_route_util::RoutePoint &point);
@@ -85,6 +79,14 @@ class RoutePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
     QWidget* GetConfigWidget(QWidget* parent) override;
 
   protected:
+    void Draw(double x, double y, double scale) override;
+
+    void Transform() override {}
+
+    void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+    void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
     void PrintError(const std::string& message) override;
     void PrintInfo(const std::string& message) override;
     void PrintWarning(const std::string& message) override;
@@ -96,6 +98,11 @@ class RoutePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
     void PositionTopicEdited();
     void SetDrawStyle(QString style);
     void DrawIcon() override;
+
+  private:
+    // Called on the GUI thread by Subscribe(); own all plugin state.
+    void handleRoute(const marti_nav_msgs::msg::Route::ConstSharedPtr route);
+    void handleRoutePosition(const marti_nav_msgs::msg::RoutePosition::ConstSharedPtr position);
 
   private:
     Ui::route_config ui_;
@@ -113,13 +120,12 @@ class RoutePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 
     swri_route_util::Route src_route_;
     // marti_nav_msgs::RoutePositionConstPtr src_route_position_;
-    marti_nav_msgs::msg::RoutePosition::SharedPtr src_route_position_;
+    marti_nav_msgs::msg::RoutePosition::ConstSharedPtr src_route_position_;
 
     void connectRouteCallback(const std::string& topic, const rmw_qos_profile_t& qos);
     void connectPositionCallback(const std::string& topic, const rmw_qos_profile_t& qos);
-    void RouteCallback(const marti_nav_msgs::msg::Route::SharedPtr msg);
-    void PositionCallback(const marti_nav_msgs::msg::RoutePosition::SharedPtr msg);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__ROUTE_PLUGIN_HPP_
