@@ -73,16 +73,17 @@ public:
   bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
+  QWidget* GetConfigWidget(QWidget* parent) override;
+
+protected:
   void Draw(double x, double y, double scale) override;
 
   void Transform() override;
 
   void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
   void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
 
-  QWidget* GetConfigWidget(QWidget* parent) override;
-
-protected:
   void PrintError(const std::string& message) override;
   void PrintInfo(const std::string& message) override;
   void PrintWarning(const std::string& message) override;
@@ -99,10 +100,16 @@ protected Q_SLOTS:
   void FrameChanged(std::string);
 
 private:
+  // Called on the GUI thread by Subscribe(); own all plugin state, the GL
+  // texture, and the color-scheme widget.
+  void handleGrid(const nav_msgs::msg::OccupancyGrid::ConstSharedPtr grid);
+  void handleGridUpdate(const map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr update);
+
+private:
   Ui::occupancy_grid_config ui_;
   QWidget* config_widget_;
 
-  nav_msgs::msg::OccupancyGrid::SharedPtr grid_;
+  nav_msgs::msg::OccupancyGrid::ConstSharedPtr grid_;
 
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr grid_sub_;
   rclcpp::Subscription<map_msgs::msg::OccupancyGridUpdate>::SharedPtr update_sub_;
@@ -124,10 +131,9 @@ private:
   Palette costmap_palette_;
 
   void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
-  void Callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-  void CallbackUpdate(const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg);
   void updateTexture();
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__OCCUPANCY_GRID_PLUGIN_HPP_
