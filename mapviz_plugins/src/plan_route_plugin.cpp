@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,12 +27,13 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/plan_route_plugin.h>
+#include <mapviz_plugins/plan_route_plugin.hpp>
+#include <mapviz/qt_mouse_event_compat.hpp>
 
 // QT libraries
 #include <QDateTime>
 #include <QDialog>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPalette>
@@ -100,6 +101,14 @@ namespace mapviz_plugins
                      SIGNAL(VisibleChanged(bool)),
                      this,
                      SLOT(VisibilityChanged(bool)));
+
+    // Service responses arrive on the ROS spin thread but must be processed
+    // on the GUI thread, which owns the plugin's state; this connection is
+    // queued because the emitting thread differs from this object's thread.
+    qRegisterMetaType<rclcpp::Client<marti_nav_msgs::srv::PlanRoute>::SharedFuture>(
+        "rclcpp::Client<marti_nav_msgs::srv::PlanRoute>::SharedFuture");
+    QObject::connect(this, &PlanRoutePlugin::PlanRouteCompleted,
+                     this, &PlanRoutePlugin::handlePlanRouteResponse);
   }
 
   PlanRoutePlugin::~PlanRoutePlugin()
@@ -130,7 +139,7 @@ namespace mapviz_plugins
       {
         route_topic_ = ui_.topic->text().toStdString();
         route_pub_.reset();
-        route_pub_ = node_->create_publisher<marti_nav_msgs::msg::Route>(
+        route_pub_ = Publisher<marti_nav_msgs::msg::Route>(
           route_topic_,
           rclcpp::QoS(1));
       }
@@ -141,6 +150,7 @@ namespace mapviz_plugins
 
   void PlanRoutePlugin::PlanRoute()
   {
+    MAPVIZ_ASSERT_GUI_THREAD();
     route_preview_ = sru::RoutePtr();
     bool start_from_vehicle = ui_.start_from_vehicle->isChecked();
     if (waypoints_.size() + start_from_vehicle < 2 || !Visible())
@@ -154,7 +164,7 @@ namespace mapviz_plugins
       PrintError("Service name may not be empty.");
       return;
     }
-    auto client = node_->create_client<marti_nav_msgs::srv::PlanRoute>(service);
+    auto client = NodeUnsafe()->create_client<marti_nav_msgs::srv::PlanRoute>(service);
     client->wait_for_service(1ms);
 
     if (!client->service_is_ready())
@@ -166,7 +176,7 @@ namespace mapviz_plugins
     auto plan_route = std::make_shared<marti_nav_msgs::srv::PlanRoute::Request>();
 
     plan_route->header.frame_id = swri_transform_util::_wgs84_frame;
-    plan_route->header.stamp = node_->now();
+    plan_route->header.stamp = Now();
     plan_route->plan_from_vehicle = static_cast<unsigned char>(start_from_vehicle);
     plan_route->waypoints = waypoints_;
 
@@ -178,7 +188,15 @@ namespace mapviz_plugins
   void PlanRoutePlugin::ClientCallback(
     rclcpp::Client<marti_nav_msgs::srv::PlanRoute>::SharedFuture future)
   {
-    RCLCPP_ERROR(node_->get_logger(), "Request callback happened");
+    // Runs on the ROS spin thread: hand the response to the GUI thread and
+    // return immediately.
+    Q_EMIT PlanRouteCompleted(future);
+  }
+
+  void PlanRoutePlugin::handlePlanRouteResponse(
+    rclcpp::Client<marti_nav_msgs::srv::PlanRoute>::SharedFuture future)
+  {
+    RCLCPP_ERROR(Logger(), "Request callback happened");
     const auto& result = future.get();
     if (future.valid())
     {
@@ -199,6 +217,7 @@ namespace mapviz_plugins
 
   void PlanRoutePlugin::Retry()
   {
+    MAPVIZ_ASSERT_GUI_THREAD();
     PlanRoute();
   }
 
@@ -230,12 +249,19 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool PlanRoutePlugin::Initialize(QGLWidget* canvas)
+  bool PlanRoutePlugin::Initialize(QOpenGLWidget* canvas)
   {
     map_canvas_ = dynamic_cast<mapviz::MapCanvas*>(canvas);
     map_canvas_->installEventFilter(this);
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
 
-    retry_timer_ = node_->create_wall_timer(1000ms, [this](){Retry();});
+    // A QTimer (instead of a ROS wall timer) so Retry() runs on the GUI
+    // thread, which owns the plugin's state and the UI widgets it reads.
+    QObject::connect(&retry_timer_, &QTimer::timeout,
+                     this, &PlanRoutePlugin::Retry);
+    retry_timer_.start(1000);
 
     initialized_ = true;
     return true;
@@ -262,7 +288,7 @@ namespace mapviz_plugins
     int closest_point = 0;
     double closest_distance = std::numeric_limits<double>::max();
 
-    QPointF point = event->localPos();
+    QPointF point = mapviz::MouseEventPosition(event);
     stu::Transform transform;
     if (tf_manager_->GetTransform(target_frame_, stu::_wgs84_frame, transform))
     {
@@ -295,7 +321,7 @@ namespace mapviz_plugins
         return true;
       } else {
         is_mouse_down_ = true;
-        mouse_down_pos_ = event->localPos();
+        mouse_down_pos_ = mapviz::MouseEventPosition(event);
         mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
         return false;
       }
@@ -313,7 +339,7 @@ namespace mapviz_plugins
 
   bool PlanRoutePlugin::handleMouseRelease(QMouseEvent* event)
   {
-    QPointF point = event->localPos();
+    QPointF point = mapviz::MouseEventPosition(event);
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
     {
       stu::Transform transform;
@@ -364,7 +390,7 @@ namespace mapviz_plugins
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < waypoints_.size())
     {
-      QPointF point = event->localPos();
+      QPointF point = mapviz::MouseEventPosition(event);
       stu::Transform transform;
       if (tf_manager_->GetTransform(stu::_wgs84_frame, target_frame_, transform))
       {

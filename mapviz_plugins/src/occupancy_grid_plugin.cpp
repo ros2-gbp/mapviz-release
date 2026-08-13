@@ -27,13 +27,11 @@
 //
 // *****************************************************************************
 
-#include <GL/glew.h>
-
-#include <mapviz_plugins/occupancy_grid_plugin.h>
-#include <mapviz_plugins/topic_select.h>
+#include <mapviz_plugins/occupancy_grid_plugin.hpp>
+#include <mapviz_plugins/topic_select.hpp>
 
 // QT libraries
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QPalette>
 
 // Declare plugin
@@ -150,7 +148,7 @@ namespace mapviz_plugins
     ui_(),
     config_widget_(new QWidget()),
     transformed_(false),
-    texture_id_(0),
+    texture_(nullptr),
     texture_x_(0.0),
     texture_y_(0.0),
     texture_size_(0),
@@ -196,6 +194,7 @@ namespace mapviz_plugins
       SIGNAL(currentTextChanged(const QString &)),
       this,
       SLOT(colorSchemeUpdated(const QString &)));
+
   }
 
   void OccupancyGridPlugin::DrawIcon()
@@ -233,7 +232,7 @@ namespace mapviz_plugins
   void OccupancyGridPlugin::SelectTopicGrid()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "nav_msgs/msg/OccupancyGrid",
       qos_);
     if (!topic.empty())
@@ -264,18 +263,23 @@ namespace mapviz_plugins
 
       if (!topic.empty())
       {
-        grid_sub_ = node_->create_subscription<nav_msgs::msg::OccupancyGrid>(
-          topic,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&OccupancyGridPlugin::Callback, this, std::placeholders::_1));
+        // Subscribe() delivers each message to handleGrid()/handleGridUpdate()
+        // on the GUI thread, where plugin state, the GL texture, and the
+        // color-scheme widget may be touched without locking.
+        Subscribe<nav_msgs::msg::OccupancyGrid>(
+          topic, qos, grid_sub_,
+          [this](nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg) {
+            handleGrid(msg);
+          });
         if(ui_.checkbox_update->isChecked())
         {
-          update_sub_ = node_->create_subscription<map_msgs::msg::OccupancyGridUpdate>(
-            topic,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&OccupancyGridPlugin::CallbackUpdate, this, std::placeholders::_1));
+          Subscribe<map_msgs::msg::OccupancyGridUpdate>(
+            topic, qos, update_sub_,
+            [this](map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr msg) {
+              handleGridUpdate(msg);
+            });
         }
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic.c_str());
       }
     }
   }
@@ -287,10 +291,13 @@ namespace mapviz_plugins
 
     if (ui_.checkbox_update)
     {
-      update_sub_ = node_->create_subscription<map_msgs::msg::OccupancyGridUpdate>(
-        topic,
-        rclcpp::QoS(10),
-        std::bind(&OccupancyGridPlugin::CallbackUpdate, this, std::placeholders::_1));
+      rmw_qos_profile_t update_qos = rmw_qos_profile_default;
+      update_qos.depth = 10;
+      Subscribe<map_msgs::msg::OccupancyGridUpdate>(
+        topic, update_qos, update_sub_,
+        [this](map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr msg) {
+          handleGridUpdate(msg);
+        });
     }
   }
 
@@ -338,52 +345,43 @@ namespace mapviz_plugins
     return config_widget_;
   }
 
-  bool OccupancyGridPlugin::Initialize(QGLWidget* canvas)
+  bool OccupancyGridPlugin::Initialize(QOpenGLWidget* canvas)
   {
     canvas_ = canvas;
+    canvas->makeCurrent();
+    initializeOpenGLFunctions();
+    canvas->doneCurrent();
     DrawIcon();
     return true;
   }
 
   void OccupancyGridPlugin::updateTexture()
   {
-    if (texture_id_ != -1)
-    {
-      glDeleteTextures(1, &texture_id_);
+    if (canvas_ == nullptr) {
+      return;
     }
 
-    // Get a new texture id.
-    glGenTextures(1, &texture_id_);
+    canvas_->makeCurrent();
 
-    // Bind the texture with the correct size and null memory.
-    glBindTexture(GL_TEXTURE_2D, texture_id_);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    texture_.reset();
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    texture_ = std::make_unique<QOpenGLTexture>(QOpenGLTexture::Target2D);
+    texture_->setFormat(QOpenGLTexture::RGBA8_UNorm);
+    texture_->setSize(static_cast<int>(texture_size_), static_cast<int>(texture_size_));
+    texture_->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8);
+    texture_->setMinificationFilter(QOpenGLTexture::Nearest);
+    texture_->setMagnificationFilter(QOpenGLTexture::Nearest);
+    texture_->setWrapMode(QOpenGLTexture::ClampToEdge);
+    texture_->setData(
+      QOpenGLTexture::RGBA,
+      QOpenGLTexture::UInt8,
+      static_cast<const void*>(color_buffer_.data()));
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-
-    glTexImage2D(
-          GL_TEXTURE_2D,
-          0,
-          GL_RGBA,
-          texture_size_,
-          texture_size_,
-          0,
-          GL_RGBA,
-          GL_UNSIGNED_BYTE,
-          color_buffer_.data());
-
-    glBindTexture(GL_TEXTURE_2D, 0);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    canvas_->doneCurrent();
   }
 
-
-  void OccupancyGridPlugin::Callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+  void OccupancyGridPlugin::handleGrid(const nav_msgs::msg::OccupancyGrid::ConstSharedPtr msg)
   {
     grid_ = msg;
     const int width  = grid_->info.width;
@@ -428,7 +426,8 @@ namespace mapviz_plugins
     PrintInfo("Map received");
   }
 
-  void OccupancyGridPlugin::CallbackUpdate(const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg)
+  void OccupancyGridPlugin::handleGridUpdate(
+      const map_msgs::msg::OccupancyGridUpdate::ConstSharedPtr msg)
   {
     PrintInfo("Update Received");
 
@@ -460,8 +459,8 @@ namespace mapviz_plugins
     {
       double resolution = grid_->info.resolution;
       glTranslatef( transform_.GetOrigin().getX(),
-                    transform_.GetOrigin().getY(),
-                    0.0);
+                        transform_.GetOrigin().getY(),
+                        0.0);
 
       const double RAD_TO_DEG = 180.0 / M_PI;
 
@@ -474,8 +473,34 @@ namespace mapviz_plugins
       glRotatef(yaw   * RAD_TO_DEG, 0, 0, 1);
 
       glTranslatef( grid_->info.origin.position.x,
-                    grid_->info.origin.position.y,
-                    0.0);
+            grid_->info.origin.position.y,
+            0.0);
+
+      // Apply the map origin's orientation.  RViz honors this, so ignoring it
+      // here makes maps with a rotated origin (e.g. a non-zero yaw) disagree
+      // with RViz.
+      tf2::Quaternion origin_orientation(
+            grid_->info.origin.orientation.x,
+            grid_->info.origin.orientation.y,
+            grid_->info.origin.orientation.z,
+            grid_->info.origin.orientation.w);
+      // A default-constructed (all-zero) quaternion is invalid; treat it as
+      // identity so maps that leave the orientation unset render as before.
+      if (origin_orientation.length2() < 1.0e-6)
+      {
+        origin_orientation = tf2::Quaternion(0.0, 0.0, 0.0, 1.0);
+      }
+      else
+      {
+        origin_orientation.normalize();
+      }
+
+      tf2Scalar origin_yaw, origin_pitch, origin_roll;
+      tf2::Matrix3x3(origin_orientation).getEulerYPR(origin_yaw, origin_pitch, origin_roll);
+
+      glRotatef(origin_pitch * RAD_TO_DEG, 0, 1, 0);
+      glRotatef(origin_roll  * RAD_TO_DEG, 1, 0, 0);
+      glRotatef(origin_yaw   * RAD_TO_DEG, 0, 0, 1);
 
       glScalef( resolution, resolution, 1.0);
 
@@ -483,7 +508,9 @@ namespace mapviz_plugins
       float height = static_cast<float>(grid_->info.height);
 
       glEnable(GL_TEXTURE_2D);
-      glBindTexture(GL_TEXTURE_2D, texture_id_);
+      if (texture_) {
+        texture_->bind();
+      }
       glBegin(GL_TRIANGLES);
 
       glColor4f(1.0f, 1.0f, 1.0f, ui_.alpha->value() );
@@ -504,7 +531,9 @@ namespace mapviz_plugins
 
       glEnd();
 
-      glBindTexture(GL_TEXTURE_2D, 0);
+      if (texture_) {
+        texture_->release();
+      }
       glDisable(GL_TEXTURE_2D);
     }
     glPopMatrix();
