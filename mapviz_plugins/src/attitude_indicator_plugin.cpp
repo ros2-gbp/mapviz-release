@@ -144,7 +144,7 @@ namespace mapviz_plugins
   void AttitudeIndicatorPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-        node_,
+        TopicSource(),
         topics_,
         qos_);
 
@@ -177,36 +177,39 @@ namespace mapviz_plugins
       qos_ = qos;
       if (!topic_.empty())
       {
-        odom_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-            topic_,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&AttitudeIndicatorPlugin::AttitudeCallbackOdom, this, std::placeholders::_1));
-        imu_sub_ = node_->create_subscription<sensor_msgs::msg::Imu>(
-            topic_,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&AttitudeIndicatorPlugin::AttitudeCallbackImu, this, std::placeholders::_1));
-        pose_sub_ = node_->create_subscription<geometry_msgs::msg::Pose>(
-            topic_,
-            rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-            std::bind(&AttitudeIndicatorPlugin::AttitudeCallbackPose, this, std::placeholders::_1));
+        // Subscribe() delivers each message to the matching handle*() method
+        // on the GUI thread, where plugin state may be touched without locking.
+        Subscribe<nav_msgs::msg::Odometry>(
+            topic_, qos, odom_sub_,
+            [this](nav_msgs::msg::Odometry::ConstSharedPtr odometry) {
+              handleOdometry(odometry);
+            });
+        Subscribe<sensor_msgs::msg::Imu>(
+            topic_, qos, imu_sub_,
+            [this](sensor_msgs::msg::Imu::ConstSharedPtr imu) { handleImu(imu); });
+        Subscribe<geometry_msgs::msg::Pose>(
+            topic_, qos, pose_sub_,
+            [this](geometry_msgs::msg::Pose::ConstSharedPtr pose) {
+              handlePose(pose);
+            });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void AttitudeIndicatorPlugin::AttitudeCallbackOdom(
-    nav_msgs::msg::Odometry::ConstSharedPtr odometry)
+  void AttitudeIndicatorPlugin::handleOdometry(
+    const nav_msgs::msg::Odometry::ConstSharedPtr odometry)
   {
     applyAttitudeOrientation(odometry->pose.pose.orientation);
   }
 
-  void AttitudeIndicatorPlugin::AttitudeCallbackImu(sensor_msgs::msg::Imu::ConstSharedPtr imu)
+  void AttitudeIndicatorPlugin::handleImu(const sensor_msgs::msg::Imu::ConstSharedPtr imu)
   {
     applyAttitudeOrientation(imu->orientation);
   }
 
-  void AttitudeIndicatorPlugin::AttitudeCallbackPose(geometry_msgs::msg::Pose::ConstSharedPtr pose)
+  void AttitudeIndicatorPlugin::handlePose(const geometry_msgs::msg::Pose::ConstSharedPtr pose)
   {
     applyAttitudeOrientation(pose->orientation);
   }
