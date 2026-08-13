@@ -41,6 +41,7 @@
 #include <QListWidgetItem>
 #include <QModelIndex>
 #include <QColor>
+#include <QToolButton>
 #include <QWidget>
 #include <QStringList>
 #include <QMainWindow>
@@ -48,30 +49,34 @@
 
 #include <swri_transform_util/transform_manager.h>
 #include <mapviz_interfaces/srv/add_mapviz_display.hpp>  // Service
-#include <mapviz/mapviz_plugin.h>
-#include <mapviz/map_canvas.h>
-#include <mapviz/video_writer.h>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/map_canvas.hpp>
+#include <mapviz/video_writer.hpp>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/version.h>
 #include <pluginlib/class_loader.hpp>
-#include <tf2_ros/buffer.h>
-#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 #include <yaml-cpp/yaml.h>
 #include <std_srvs/srv/empty.hpp>
 
 // C++ standard libraries
-#include <string>
-#include <vector>
+#include <atomic>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
 // Auto-generated UI files
-#include "ui_mapviz.h"
-#include "ui_pluginselect.h"
+#include "ui/ui_mapviz.h"
+#include "ui/ui_pluginselect.h"
 
 
-#include "mapviz/stopwatch.h"
+#include "mapviz/stopwatch.hpp"
 
 namespace mapviz
 {
@@ -111,6 +116,7 @@ public Q_SLOTS:
   void SpinOnce();
   void UpdateSizeHints();
   void ToggleConfigPanel(bool on);
+  void TogglePinConfigPanel(bool pinned);
   void ToggleStatusBar(bool on);
   void ToggleCaptureTools(bool on);
   void ToggleFixOrientation(bool on);
@@ -165,6 +171,7 @@ protected:
 
   virtual void showEvent(QShowEvent* event);
   virtual void closeEvent(QCloseEvent* event);
+  bool eventFilter(QObject* object, QEvent* event) override;
 
   static const QString ROS_WORKSPACE_VAR;
   static const QString MAPVIZ_CONFIG_FILE;
@@ -208,6 +215,26 @@ protected:
   bool updating_frames_;
 
   std::shared_ptr<rclcpp::Node> node_;
+
+  // Spins only gui_callback_group_ (currently the add_mapviz_display
+  // service, which manipulates widgets); pumped from a QTimer on the GUI
+  // thread via SpinOnce().
+  rclcpp::executors::SingleThreadedExecutor executor_;
+  rclcpp::CallbackGroup::SharedPtr gui_callback_group_;
+
+  // Spins everything else on the node (plugin subscriptions, tf, etc.) on a
+  // background thread so message waiting and decoding never block the GUI.
+  // Plugin callbacks hand their results to the GUI thread through queued
+  // signal connections, so no data locking is needed; the only
+  // synchronization is plugin_teardown_mutex_, which keeps a plugin from
+  // being destroyed while one of its callbacks is being dispatched.
+  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> ros_executor_;
+  std::thread ros_spin_thread_;
+  std::atomic_bool spinning_;
+  std::mutex plugin_teardown_mutex_;
+
+  void StopSpinThread();
+
   rclcpp::Service<mapviz_interfaces::srv::AddMapvizDisplay>::SharedPtr add_display_srv_;
   std::shared_ptr<tf2_ros::Buffer> tf_buf_;
   std::shared_ptr<tf2_ros::TransformListener> tf_;
@@ -216,6 +243,13 @@ protected:
   pluginlib::ClassLoader<MapvizPlugin>* loader_;
   MapCanvas* canvas_;
   std::map<QListWidgetItem*, MapvizPluginPtr> plugins_;
+
+  // Config dock pin/auto-hide
+  QToolButton* pin_button_ = nullptr;
+  QLabel* title_label_ = nullptr;
+  QWidget* collapsed_label_ = nullptr;
+  bool config_panel_pinned_ = false;
+  int pinned_panel_width_;
 
   Stopwatch meas_spin_;
 };

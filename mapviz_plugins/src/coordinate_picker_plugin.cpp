@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2018, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2026, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,9 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/coordinate_picker_plugin.h>
-#include <mapviz/mapviz_plugin.h>
+#include <mapviz_plugins/coordinate_picker_plugin.hpp>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/qt_mouse_event_compat.hpp>
 
 #include <QClipboard>
 #include <QMouseEvent>
@@ -44,7 +45,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 // Mapviz Libraries
-#include <mapviz/select_frame_dialog.h>
+#include <mapviz/select_frame_dialog.hpp>
 
 //
 #include <swri_transform_util/frames.h>
@@ -95,7 +96,7 @@ QWidget* CoordinatePickerPlugin::GetConfigWidget(QWidget* parent)
   return config_widget_;
 }
 
-bool CoordinatePickerPlugin::Initialize(QGLWidget* canvas)
+bool CoordinatePickerPlugin::Initialize(QOpenGLWidget* canvas)
 {
   map_canvas_ = dynamic_cast< mapviz::MapCanvas* >(canvas);
   map_canvas_->installEventFilter(this);
@@ -110,7 +111,7 @@ bool CoordinatePickerPlugin::eventFilter(QObject* object, QEvent* event)
 {
   if(!this->Visible())
   {
-    RCLCPP_DEBUG(node_->get_logger(), "Ignoring mouse event, since coordinate picker plugin is hidden");
+    RCLCPP_DEBUG(Logger(), "Ignoring mouse event, since coordinate picker plugin is hidden");
     return false;
   }
 
@@ -129,8 +130,8 @@ bool CoordinatePickerPlugin::eventFilter(QObject* object, QEvent* event)
 
 bool CoordinatePickerPlugin::handleMousePress(QMouseEvent* event)
 {
-  QPointF point = event->localPos();
-  RCLCPP_DEBUG(node_->get_logger(), "Map point: %f %f", point.x(), point.y());
+  QPointF point = mapviz::MouseEventPosition(event);
+  RCLCPP_DEBUG(Logger(), "Map point: %f %f", point.x(), point.y());
 
   swri_transform_util::Transform transform;
   std::string frame = ui_.frame->text().toStdString();
@@ -146,12 +147,12 @@ bool CoordinatePickerPlugin::handleMousePress(QMouseEvent* event)
   // Then we translate from that frame into *our* target frame, `frame`.
   if (tf_manager_->GetTransform(frame, target_frame_, transform))
   {
-    RCLCPP_DEBUG(node_->get_logger(),
+    RCLCPP_DEBUG(Logger(),
               "Transforming from fixed frame '%s' to (plugin) target frame '%s'",
               target_frame_.c_str(),
               frame.c_str());
     QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
-    RCLCPP_DEBUG(node_->get_logger(),
+    RCLCPP_DEBUG(Logger(),
       "Point in fixed frame: %f %f",
       transformed.x(),
       transformed.y());
@@ -173,7 +174,7 @@ bool CoordinatePickerPlugin::handleMousePress(QMouseEvent* event)
   }
 
 
-  RCLCPP_DEBUG(node_->get_logger(),
+  RCLCPP_DEBUG(Logger(),
     "Transformed point in frame '%s': %f %f",
     frame.c_str(),
     point.x(),
@@ -228,7 +229,7 @@ void CoordinatePickerPlugin::SelectFrame()
 
 void CoordinatePickerPlugin::FrameEdited()
 {
-  RCLCPP_INFO(node_->get_logger(),
+  RCLCPP_INFO(Logger(),
     "Setting target frame to %s",
     ui_.frame->text().toStdString().c_str());
 }
