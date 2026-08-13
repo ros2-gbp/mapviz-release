@@ -63,12 +63,16 @@
 #include <QFileInfo>
 #include <QListWidgetItem>
 #include <QMutexLocker>
+#include <QEvent>
+#include <QHBoxLayout>
+#include <QPainter>
+#include <QVBoxLayout>
 
 // Other Project libraries
 #include <swri_math_util/constants.h>
 #include <swri_transform_util/frames.h>
 
-#include <mapviz/config_item.h>
+#include <mapviz/config_item.hpp>
 #include <QtGui/QtGui>
 
 #include <image_transport/image_transport.hpp>
@@ -82,6 +86,47 @@
 
 namespace mapviz
 {
+
+// Constants for VerticalLabel padding. Arbitrarily chosen to look good with
+// the default font and size
+constexpr int VERTICAL_LABEL_PADDING_VERTICAL = 4;
+constexpr int VERTICAL_LABEL_PADDING_HORIZONTAL = 8;
+
+// Minimum width for config panel when pinned. Set to 332 pixels to accommodate
+// the UI layout including labels, spinboxes, and buttons while maintaining
+// usability with reasonable display resolutions and DPI scaling
+constexpr int CONFIG_PANEL_PINNED_WIDTH = 332;
+// Minimum width for collapsed state, set to accommodate the vertical label 
+constexpr int CONFIG_PANEL_COLLAPSED_WIDTH = 28;  
+
+// A label that paints its text rotated 90° clockwise (reads top-to-bottom)
+class VerticalLabel : public QWidget
+{
+public:
+  explicit VerticalLabel(const QString& text, QWidget* parent = nullptr)
+    : QWidget(parent), text_(text) {
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+  }
+  QSize sizeHint() const override {
+    QFontMetrics fm(font());
+    return QSize(fm.height() + VERTICAL_LABEL_PADDING_VERTICAL, fm.horizontalAdvance(text_) + VERTICAL_LABEL_PADDING_HORIZONTAL);
+  }
+  QSize minimumSizeHint() const override { return sizeHint(); }
+protected:
+  void paintEvent(QPaintEvent*) override {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    QFont f = font();
+    f.setBold(true);
+    p.setFont(f);
+    p.translate(width(), 0);
+    p.rotate(90);
+    p.drawText(QRect(4, 0, height(), width()), Qt::AlignVCenter | Qt::AlignLeft, text_);
+  }
+private:
+  QString text_;
+};
+
 const QString Mapviz::ROS_WORKSPACE_VAR = "ROS_WORKSPACE";
 const QString Mapviz::MAPVIZ_CONFIG_FILE = "/.mapviz_config";
 const char Mapviz::IMAGE_TRANSPORT_PARAM[] = "image_transport";
@@ -102,7 +147,12 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
     vid_writer_(nullptr),
     updating_frames_(false),
     node_(nullptr),
-    canvas_(nullptr)
+    canvas_(nullptr),
+    pin_button_(nullptr),
+    title_label_(nullptr),
+    collapsed_label_(nullptr),
+    config_panel_pinned_(true),
+    pinned_panel_width_(CONFIG_PANEL_PINNED_WIDTH)
 {
   // Multiple users could be using mapviz, so its name needs to be anonymous,
   // but ROS 2 Dashing doesn't have a way to set that through node options;
@@ -114,6 +164,19 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   name << buf;
   node_ = std::make_shared<rclcpp::Node>(name.str());
 
+  // Callbacks that must run on the GUI thread (the add_mapviz_display
+  // service creates widgets) go in this group, which is spun by executor_
+  // from a QTimer.  The rest of the node's callbacks are serviced by
+  // ros_executor_ on a background thread; see Initialize().
+  gui_callback_group_ = node_->create_callback_group(
+      rclcpp::CallbackGroupType::MutuallyExclusive,
+      false /* don't add to the executor that spins the node */);
+  executor_.add_callback_group(gui_callback_group_, node_->get_node_base_interface());
+
+  ros_executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  ros_executor_->add_node(node_);
+  spinning_ = false;
+
   QString default_path = GetDefaultConfigPath();
   node_->declare_parameter("config", default_path.toStdString());
   node_->declare_parameter("auto_save_backup", true);
@@ -121,6 +184,44 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
   node_->declare_parameter(IMAGE_TRANSPORT_PARAM, "raw");
 
   ui_.setupUi(this);
+
+  // Set up custom title bar for configdock with pin button
+  {
+    QWidget* title_bar = new QWidget(ui_.configdock);
+    QHBoxLayout* title_layout = new QHBoxLayout(title_bar);
+    title_layout->setContentsMargins(4, 0, 4, 0);
+    title_layout->setSpacing(4);
+
+    pin_button_ = new QToolButton(title_bar);
+    pin_button_->setCheckable(true);
+    pin_button_->setChecked(true);
+    pin_button_->setToolTip("Pin panel (unpin to auto-hide)");
+    pin_button_->setIcon(QIcon::fromTheme("window-pin",
+      QIcon::fromTheme("object-locked")));
+    pin_button_->setAutoRaise(true);
+    pin_button_->setFixedSize(20, 20);
+    // Use text fallback if no icon theme available
+    if (pin_button_->icon().isNull()) {
+      pin_button_->setText("\xF0\x9F\x93\x8C");  // pin emoji as fallback
+    }
+    title_layout->addWidget(pin_button_);
+
+    title_label_ = new QLabel("Config", title_bar);
+    title_label_->setStyleSheet("font-weight: bold;");
+    title_layout->addWidget(title_label_);
+    title_layout->addStretch();
+
+    title_bar->setLayout(title_layout);
+    ui_.configdock->setTitleBarWidget(title_bar);
+
+    connect(pin_button_, SIGNAL(toggled(bool)), this, SLOT(TogglePinConfigPanel(bool)));
+    ui_.configdock->installEventFilter(this);
+  }
+
+  // Add vertical label to dock contents for collapsed state
+  collapsed_label_ = new VerticalLabel("Config", ui_.dockWidgetContents);
+  collapsed_label_->setVisible(false);
+  ui_.verticalLayout->insertWidget(0, collapsed_label_);
 
   xy_pos_label_->setVisible(false);
   lat_lon_pos_label_->setVisible(false);
@@ -241,6 +342,7 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
 
 Mapviz::~Mapviz()
 {
+  StopSpinThread();
   video_thread_.quit();
   video_thread_.wait();
 }
@@ -259,6 +361,9 @@ void Mapviz::closeEvent(QCloseEvent* event)
 {
   AutoSave();
 
+  // Stop servicing message callbacks before tearing the plugins down.
+  StopSpinThread();
+
   for (auto& display : plugins_) {
     MapvizPluginPtr plugin = display.second;
     canvas_->RemovePlugin(plugin);
@@ -270,13 +375,20 @@ void Mapviz::closeEvent(QCloseEvent* event)
 void Mapviz::Initialize()
 {
   if (!initialized_) {
-    if (is_standalone_) {
-      spin_timer_.start(30);
-      connect(&spin_timer_, SIGNAL(timeout()), this, SLOT(SpinOnce()));
-    }
+    // executor_ only services the GUI callback group; this timer runs in
+    // both standalone and rqt modes.
+    spin_timer_.start(30);
+    connect(&spin_timer_, SIGNAL(timeout()), this, SLOT(SpinOnce()));
 
     // Create a sub-menu that lists all available Image Transports
+    // image_common < 6.4.0 (e.g. ROS Humble) exposes
+    // ImageTransport(rclcpp::Node::SharedPtr); 6.4.0+ replaced it with
+    // ImageTransport(rclcpp::Node&).
+#ifdef MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF
+    image_transport::ImageTransport it(*node_);
+#else
     image_transport::ImageTransport it(node_);
+#endif
     std::vector<std::string> transports = it.getLoadableTransports();
     QActionGroup* group = new QActionGroup(image_transport_menu_);
     for (const auto& iter : transports)
@@ -323,12 +435,22 @@ void Mapviz::Initialize()
     canvas_->SetFixedFrame(ui_.fixedframe->currentText().toStdString());
     canvas_->SetTargetFrame(ui_.targetframe->currentText().toStdString());
 
+    // This service creates and configures widgets, so it must be handled on
+    // the GUI thread; the GUI callback group is spun there by SpinOnce().
     add_display_srv_ = node_->create_service<mapviz_interfaces::srv::AddMapvizDisplay>(
                                               "add_mapviz_display",
                                               std::bind(&Mapviz::AddDisplay,
                                                   this,
                                                   std::placeholders::_1,
-                                                  std::placeholders::_2));
+                                                  std::placeholders::_2),
+#if RCLCPP_VERSION_GTE(17, 0, 0)
+                                              // Iron and newer take rclcpp::QoS
+                                              rclcpp::ServicesQoS(),
+#else
+                                              // Humble takes rmw_qos_profile_t
+                                              rmw_qos_profile_services_default,
+#endif
+                                              gui_callback_group_);
 
     QString default_path = GetDefaultConfigPath();
 
@@ -361,7 +483,31 @@ void Mapviz::Initialize()
     setFocus();   // Set the main window as focused object,
                   // prevent other fields from obtaining focus at startup
 
+    // Service ROS message callbacks on a background thread so that message
+    // waiting and decoding never block the GUI.  Plugin callbacks only
+    // decode and emit queued signals, so no data lock is needed; the
+    // teardown mutex just keeps RemoveDisplay()/ClearDisplays() from
+    // destroying a plugin while one of its callbacks is being dispatched.
+    spinning_ = true;
+    ros_spin_thread_ = std::thread([this]() {
+      while (spinning_ && rclcpp::ok()) {
+        {
+          std::lock_guard<std::mutex> lock(plugin_teardown_mutex_);
+          ros_executor_->spin_some();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+    });
+
     initialized_ = true;
+  }
+}
+
+void Mapviz::StopSpinThread()
+{
+  spinning_ = false;
+  if (ros_spin_thread_.joinable()) {
+    ros_spin_thread_.join();
   }
 }
 
@@ -392,7 +538,7 @@ void Mapviz::SpinOnce()
 {
   if (rclcpp::ok()) {
     meas_spin_.start();
-    rclcpp::spin_some(node_);
+    executor_.spin_some();
     meas_spin_.stop();
   } else {
     QApplication::exit();
@@ -629,6 +775,15 @@ void Mapviz::Open(const std::string& filename)
       ui_.actionShow_Capture_Tools->setChecked(show_capture_tools);
     }
 
+    if (doc["panel_width"]) {
+      int panel_width = doc["panel_width"].as<int>();
+      if (panel_width >= CONFIG_PANEL_PINNED_WIDTH) {
+        pinned_panel_width_ = panel_width;
+        resizeDocks({ui_.configdock}, {panel_width}, Qt::Horizontal);
+        ui_.configdock->setMinimumWidth(CONFIG_PANEL_PINNED_WIDTH);
+      }
+    }
+
     if (doc["window_width"]) {
       int window_width = doc["window_width"].as<int>();
       resize(window_width, height());
@@ -706,7 +861,7 @@ void Mapviz::Open(const std::string& filename)
         {
           MapvizPluginPtr plugin =
               CreateNewDisplay(name, type, visible, collapsed);
-          plugin->LoadConfig(config, config_path);
+          plugin->LoadConfigPlugin(config, config_path);
           plugin->DrawIcon();
         }
         catch (const pluginlib::LibraryLoadException& e)
@@ -799,6 +954,7 @@ void Mapviz::Save(const std::string& filename)
       << ui_.actionShow_Capture_Tools->isChecked();
   out << YAML::Key << "window_width" << YAML::Value << width();
   out << YAML::Key << "window_height" << YAML::Value << height();
+  out << YAML::Key << "panel_width" << YAML::Value << ui_.configdock->width();
   out << YAML::Key << "view_scale" << YAML::Value << canvas_->ViewScale();
   out << YAML::Key << "offset_x" << YAML::Value << canvas_->OffsetX();
   out << YAML::Key << "offset_y" << YAML::Value << canvas_->OffsetY();
@@ -840,7 +996,7 @@ void Mapviz::Save(const std::string& filename)
           << YAML::Value
           << (dynamic_cast<ConfigItem*>(ui_.configs->itemWidget(ui_.configs->item(i))))->Collapsed();
 
-      plugins_[ui_.configs->item(i)]->SaveConfig(out, config_path);
+      plugins_[ui_.configs->item(i)]->SaveConfigPlugin(out, config_path);
 
       out << YAML::EndMap;
       out << YAML::EndMap;
@@ -1008,7 +1164,7 @@ void Mapviz::AddDisplay(
     }
 
     if (plugin->Name() == req->name && plugin->Type() == req->type) {
-      plugin->LoadConfig(config, "");
+      plugin->LoadConfigPlugin(config, "");
       plugin->SetVisible(req->visible);
 
       if (req->draw_order > 0) {
@@ -1034,7 +1190,7 @@ void Mapviz::AddDisplay(
   {
     MapvizPluginPtr plugin =
       CreateNewDisplay(req->name, req->type, req->visible, false, req->draw_order);
-    plugin->LoadConfig(config, "");
+    plugin->LoadConfigPlugin(config, "");
     plugin->DrawIcon();
     resp->success = true;
   }
@@ -1171,7 +1327,7 @@ MapvizPluginPtr Mapviz::CreateNewDisplay(
   config_item->SetType(pretty_type);
   QListWidgetItem* item = new PluginConfigListItem();
   config_item->SetListItem(item);
-  item->setSizeHint(config_item->sizeHint());
+  item->setSizeHint(QSize(0, config_item->sizeHint().height()));
   connect(config_item, SIGNAL(UpdateSizeHint()), this, SLOT(UpdateSizeHints()));
   connect(
     config_item,
@@ -1294,6 +1450,35 @@ void Mapviz::ToggleConfigPanel(bool on)
   AdjustWindowSize();
 }
 
+void Mapviz::TogglePinConfigPanel(bool pinned)
+{
+  config_panel_pinned_ = pinned;
+  if (pinned) {
+    pin_button_->setToolTip("Panel pinned (click to auto-hide)");
+    // Restore full dock
+    const int target = std::max(pinned_panel_width_, CONFIG_PANEL_PINNED_WIDTH);
+    title_label_->setText("Config");
+    ui_.configdock->setMaximumWidth(QWIDGETSIZE_MAX);
+    resizeDocks({ui_.configdock}, {target}, Qt::Horizontal);
+    ui_.configdock->setMinimumWidth(CONFIG_PANEL_PINNED_WIDTH);
+    collapsed_label_->setVisible(false);
+    ui_.widget_2->show();
+    ui_.configs->show();
+    ui_.widget->show();
+  } else {
+    pin_button_->setToolTip("Panel unpinned (click to pin)");
+    // Collapse to narrow strip with vertical label
+    title_label_->setText("");
+    ui_.widget_2->hide();
+    ui_.configs->hide();
+    ui_.widget->hide();
+    collapsed_label_->setVisible(true);
+    ui_.configdock->setMinimumWidth(28);
+    ui_.configdock->setMaximumWidth(28);
+  }
+  AdjustWindowSize();
+}
+
 void Mapviz::ToggleStatusBar(bool on)
 {
   ui_.statusbar->setVisible(on);
@@ -1347,7 +1532,7 @@ void Mapviz::ToggleRecord(bool on)
       RCLCPP_INFO(node_->get_logger(), "Writing video to: %s", filename.c_str());
       ui_.statusbar->showMessage("Recording video to " + QString::fromStdString(filename));
 
-      canvas_->updateGL();
+      canvas_->update();
     }
 
     record_timer_.start(1000.0 / 30.0);
@@ -1470,7 +1655,7 @@ void Mapviz::UpdateSizeHints()
       // Make sure the ConfigItem in the QListWidgetItem we're getting really
       // exists; if this method is called before it's been initialized, it would
       // cause a crash.
-      item->setSizeHint(widget->sizeHint());
+      item->setSizeHint(QSize(0, widget->sizeHint().height()));
     }
   }
 }
@@ -1486,6 +1671,10 @@ void Mapviz::RemoveDisplay(QListWidgetItem* item)
   RCLCPP_INFO(rclcpp::get_logger("mapviz"), "Remove display ...");
 
   if (item) {
+    // Hold the teardown mutex so the plugin (and its subscriptions) can't be
+    // destroyed while the spin thread is dispatching one of its callbacks.
+    std::lock_guard<std::mutex> lock(plugin_teardown_mutex_);
+
     canvas_->RemovePlugin(plugins_[item]);
     plugins_.erase(item);
 
@@ -1537,7 +1726,7 @@ void Mapviz::DuplicateDisplay(QListWidgetItem* item)
   out << YAML::BeginMap;
   out << YAML::Key << "visible" << YAML::Value << target_plugin->Visible();
   out << YAML::Key << "collapsed" << YAML::Value << target_config_item->Collapsed();
-  target_plugin->SaveConfig(out, "");
+  target_plugin->SaveConfigPlugin(out, "");
   out << YAML::EndMap;
   out << YAML::EndMap;
 
@@ -1557,7 +1746,7 @@ void Mapviz::DuplicateDisplay(QListWidgetItem* item)
         target_plugin->Type(),
         target_plugin->Visible(),
         target_config_item->Collapsed());
-    duplicate_plugin->LoadConfig(temp_config_node, "");
+    duplicate_plugin->LoadConfigPlugin(temp_config_node, "");
     duplicate_plugin->DrawIcon();
   }
   catch (const pluginlib::LibraryLoadException& e)
@@ -1568,6 +1757,9 @@ void Mapviz::DuplicateDisplay(QListWidgetItem* item)
 
 void Mapviz::ClearDisplays()
 {
+  // See RemoveDisplay(): plugins must not be destroyed mid-callback.
+  std::lock_guard<std::mutex> lock(plugin_teardown_mutex_);
+
   while (ui_.configs->count() > 0) {
     RCLCPP_INFO(node_->get_logger(), "Remove display ...");
 
@@ -1617,5 +1809,37 @@ void Mapviz::HandleProfileTimer()
       plugin->PrintMeasurements();
     }
   }
+}
+
+bool Mapviz::eventFilter(QObject* object, QEvent* event)
+{
+  if (object == ui_.configdock && config_panel_pinned_ &&
+      event->type() == QEvent::Resize) {
+    // Grab the resized panel width
+    pinned_panel_width_ = ui_.configdock->width();
+  } else if (object == ui_.configdock && !config_panel_pinned_) {
+    if (event->type() == QEvent::Enter) {
+      // Expand on mouse enter
+      const int target = std::max(pinned_panel_width_, CONFIG_PANEL_PINNED_WIDTH);
+      title_label_->setText("Config");
+      ui_.configdock->setMaximumWidth(QWIDGETSIZE_MAX);
+      resizeDocks({ui_.configdock}, {target}, Qt::Horizontal);
+      ui_.configdock->setMinimumWidth(CONFIG_PANEL_PINNED_WIDTH);
+      collapsed_label_->setVisible(false);
+      ui_.widget_2->show();
+      ui_.configs->show();
+      ui_.widget->show();
+    } else if (event->type() == QEvent::Leave) {
+      // Collapse on mouse leave
+      title_label_->setText("");
+      ui_.widget_2->hide();
+      ui_.configs->hide();
+      ui_.widget->hide();
+      collapsed_label_->setVisible(true);
+      ui_.configdock->setMinimumWidth(CONFIG_PANEL_COLLAPSED_WIDTH);
+      ui_.configdock->setMaximumWidth(CONFIG_PANEL_COLLAPSED_WIDTH);
+    }
+  }
+  return QMainWindow::eventFilter(object, event);
 }
 }   // namespace mapviz

@@ -1,6 +1,6 @@
 // *****************************************************************************
 //
-// Copyright (c) 2017, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2014, Southwest Research Institute® (SwRI®)
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,45 +27,33 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__VIDEO_WRITER_H_
-#define MAPVIZ__VIDEO_WRITER_H_
+#ifndef MAPVIZ__MAPVIZ_APPLICATION_HPP_
+#define MAPVIZ__MAPVIZ_APPLICATION_HPP_
 
-#include <QImage>
-#include <QObject>
-#include <QRecursiveMutex>
+#include <QApplication>
+#include <QEvent>
 
-#include <memory>
-#include <string>
-
-#ifndef Q_MOC_RUN
-#include <opencv2/highgui/highgui.hpp>
-#endif
+#include <rclcpp/logger.hpp>
 
 namespace mapviz
 {
-class VideoWriter : public QObject
+/**
+ * This class exists solely so that we can override QApplication::notify and
+ * log exceptions in the event loop as errors rather than letting them
+ * crash the entire program.
+ */
+class MapvizApplication : public QApplication
 {
-  Q_OBJECT
-
 public:
-  VideoWriter() :
-    height_(0),
-    width_(0)
-  {}
+  MapvizApplication(int &argc, char** argv,
+      rclcpp::Logger logger = rclcpp::get_logger("mapviz::MapvizApplication"));
 
-  bool initializeWriter(const std::string& directory, int width, int height);
-  bool isRecording();
-  void stop();
-
-public Q_SLOTS:
-  void processFrame(QImage frame);
-
+  void setLogger(const rclcpp::Logger& logger);
 private:
-  int height_;
-  int width_;
-  QRecursiveMutex video_mutex_;
-  std::shared_ptr<cv::VideoWriter> video_writer_;
-};
-}  // namespace mapviz
+  bool notify(QObject* receiver, QEvent* event) override;
 
-#endif  // MAPVIZ__VIDEO_WRITER_H_
+  rclcpp::Logger logger_;
+};
+}   // namespace mapviz
+
+#endif  // MAPVIZ__MAPVIZ_APPLICATION_HPP_
