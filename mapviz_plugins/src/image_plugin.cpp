@@ -100,6 +100,14 @@ namespace mapviz_plugins
 
     ui_.width->setKeyboardTracking(false);
     ui_.height->setKeyboardTracking(false);
+
+    // Messages are received on the ROS spin thread but must be processed on
+    // the GUI thread, which owns the plugin's state; these connections are
+    // queued because the emitting thread differs from this object's thread.
+    qRegisterMetaType<sensor_msgs::msg::Image::ConstSharedPtr>(
+        "sensor_msgs::msg::Image::ConstSharedPtr");
+    QObject::connect(this, &ImagePlugin::ImageReceived,
+                     this, &ImagePlugin::handleImage);
   }
 
   void ImagePlugin::SetOffsetX(int offset)
@@ -203,7 +211,7 @@ namespace mapviz_plugins
       return;
     } else if (!visible) {
       image_sub_.shutdown();
-      RCLCPP_INFO(node_->get_logger(), "Dropped subscription to %s", topic_.c_str());
+      RCLCPP_INFO(Logger(), "Dropped subscription to %s", topic_.c_str());
     } else {
       Resubscribe();
     }
@@ -212,7 +220,7 @@ namespace mapviz_plugins
   void ImagePlugin::SetTransport(const QString& transport)
   {
     transport_ = transport.toStdString();
-    RCLCPP_INFO(node_->get_logger(), "Changing image_transport to %s.", transport_.c_str());
+    RCLCPP_INFO(Logger(), "Changing image_transport to %s.", transport_.c_str());
     TopicEdited();
   }
 
@@ -254,7 +262,7 @@ namespace mapviz_plugins
   void ImagePlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "sensor_msgs/msg/Image",
       qos_);
     if (!topic.empty())
@@ -307,30 +315,54 @@ namespace mapviz_plugins
       {
         if (transport_ == "default")
         {
-          RCLCPP_DEBUG(node_->get_logger(), "Using default transport.");
-          image_transport::ImageTransport it(node_);
+          RCLCPP_DEBUG(Logger(), "Using default transport.");
+          // image_common < 6.4.0 (e.g. ROS Humble) exposes
+          // ImageTransport(rclcpp::Node::SharedPtr); 6.4.0+ replaced it with
+          // ImageTransport(rclcpp::Node&).
+#ifdef MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF
+          image_transport::ImageTransport it(*NodeUnsafe());
+#else
+          image_transport::ImageTransport it(NodeUnsafe());
+#endif
           image_sub_ = it.subscribe(
             topic_,
             qos_.depth,
             std::bind(&ImagePlugin::imageCallback, this, std::placeholders::_1));
         } else {
-          RCLCPP_DEBUG(node_->get_logger(), "Setting transport to %s on %s.",
-                   transport_.c_str(), node_->get_fully_qualified_name());
+          RCLCPP_DEBUG(Logger(), "Setting transport to %s on %s.",
+                   transport_.c_str(), NodeUnsafe()->get_fully_qualified_name());
 
-          image_transport::ImageTransport it(node_);
-          image_sub_ = image_transport::create_subscription(node_.get(),
+          // Similarly, create_subscription() took rclcpp::Node* and a
+          // rmw_qos_profile_t before image_common 6.4.0, and rclcpp::Node&
+          // with an rclcpp::QoS from 6.4.0 onward.
+#ifdef MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF
+          image_sub_ = image_transport::create_subscription(*NodeUnsafe(),
+              topic_,
+              std::bind(&ImagePlugin::imageCallback, this, std::placeholders::_1),
+              transport_,
+              rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos));
+#else
+          image_sub_ = image_transport::create_subscription(NodeUnsafe().get(),
               topic_,
               std::bind(&ImagePlugin::imageCallback, this, std::placeholders::_1),
               transport_,
               qos);
+#endif
         }
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
   void ImagePlugin::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image)
+  {
+    // Runs on the ROS spin thread: hand the message to the GUI thread and
+    // return immediately so message processing never blocks ROS spinning.
+    Q_EMIT ImageReceived(image);
+  }
+
+  void ImagePlugin::handleImage(const sensor_msgs::msg::Image::ConstSharedPtr image)
   {
     if (!has_message_)
     {
@@ -367,21 +399,9 @@ namespace mapviz_plugins
     // Calculate aspect ratio after rotation
     original_aspect_ratio_ = static_cast<double>(cv_image_->image.rows) / static_cast<double>(cv_image_->image.cols);
 
-    if( ui_.keep_ratio->isChecked() )
+    if (ui_.keep_ratio->isChecked())
     {
-      double height =  width_ * original_aspect_ratio_;
-      if (units_ == PERCENT)
-      {
-        height *= static_cast<double>(canvas_->width()) / static_cast<double>(canvas_->height());
-        // Round to 2 decimal places for percent
-        height = std::round(height * 100.0) / 100.0;
-      }
-      else
-      {
-        // Round to nearest whole number for pixels
-        height = std::round(height);
-      }
-      ui_.height->setValue(height);
+      KeepRatioChanged(true);
     }
 
     has_image_ = true;
@@ -552,7 +572,7 @@ namespace mapviz_plugins
       {
         ui_.transport_combo_box->setCurrentIndex(index);
       } else {
-        RCLCPP_WARN(node_->get_logger(), "Saved image transport %s is unavailable.",
+        RCLCPP_WARN(Logger(), "Saved image transport %s is unavailable.",
                  transport_.c_str());
       }
     }
@@ -682,11 +702,15 @@ namespace mapviz_plugins
 
   void ImagePlugin::SetNode(rclcpp::Node& node)
   {
-    node_ = node.shared_from_this();
+    MapvizPlugin::SetNode(node);
 
     // As soon as we have a node, we can find the available image transports
     // and add them to our combo box.
-    image_transport::ImageTransport it(node_);
+#ifdef MAPVIZ_IMAGE_TRANSPORT_TAKES_NODE_REF
+    image_transport::ImageTransport it(*NodeUnsafe());
+#else
+    image_transport::ImageTransport it(NodeUnsafe());
+#endif
     std::vector<std::string> transports = it.getLoadableTransports();
     for (const std::string& transport : transports)
     {
