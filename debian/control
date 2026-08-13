@@ -1,0 +1,12 @@
+Source: ros-lyrical-mapviz
+Section: misc
+Priority: optional
+Maintainer: "Southwest Research Institute" <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libopencv-dev, libxi-dev, libxmu-dev, libyaml-cpp-dev, pkg-config, qt6-base-dev, ros-lyrical-ament-cmake, ros-lyrical-geometry-msgs, ros-lyrical-image-transport, ros-lyrical-mapviz-interfaces, ros-lyrical-pluginlib, ros-lyrical-rclcpp, ros-lyrical-rqt-gui, ros-lyrical-rqt-gui-cpp, ros-lyrical-std-srvs, ros-lyrical-swri-math-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-tf2-geometry-msgs, ros-lyrical-tf2-ros, ros-lyrical-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-lyrical-mapviz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libopencv-dev, libqt6core6t64, libqt6gui6, libqt6opengl6, libxi-dev, libxmu-dev, libyaml-cpp-dev, qt6-base-dev, ros-lyrical-geometry-msgs, ros-lyrical-image-transport, ros-lyrical-mapviz-interfaces, ros-lyrical-pluginlib, ros-lyrical-rclcpp, ros-lyrical-rqt-gui, ros-lyrical-rqt-gui-cpp, ros-lyrical-std-srvs, ros-lyrical-swri-math-util, ros-lyrical-swri-transform-util, ros-lyrical-tf2, ros-lyrical-tf2-geometry-msgs, ros-lyrical-tf2-ros, ros-lyrical-ros-workspace
+Description: 2D mapping display with extensible data overlays
