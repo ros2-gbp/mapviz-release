@@ -38,6 +38,7 @@
 #include <QObject>
 #include <QWidget>
 #include <QColor>
+#include <QMetaType>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
@@ -87,18 +88,19 @@ public:
   bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override {}
 
-  void Draw(double x, double y, double scale) override;
-
   void SetNode(rclcpp::Node& node) override;
-
-  void Transform() override {}
-
-  void LoadConfig(const YAML::Node& node, const std::string& path) override;
-  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
 
   QWidget* GetConfigWidget(QWidget* parent) override;
 
 protected:
+  void Draw(double x, double y, double scale) override;
+
+  void Transform() override {}
+
+  void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
   void PrintError(const std::string& message) override;
   void PrintInfo(const std::string& message) override;
   void PrintWarning(const std::string& message) override;
@@ -119,6 +121,14 @@ protected Q_SLOTS:
   void SetTransport(const QString& transport);
   void KeepRatioChanged(bool checked);
   void SetRotation(QString rotation);
+
+Q_SIGNALS:
+  // Emitted from the ROS spin thread; delivered as queued connections to
+  // handleImage() on the GUI thread, which owns all plugin state.
+  void ImageReceived(const sensor_msgs::msg::Image::ConstSharedPtr image);
+
+private Q_SLOTS:
+  void handleImage(const sensor_msgs::msg::Image::ConstSharedPtr image);
 
 private:
   Ui::image_config ui_;
@@ -158,5 +168,10 @@ private:
   std::string UnitsToString(Units units);
 };
 }   // namespace mapviz_plugins
+
+// ImagePlugin subscribes through image_transport (which Subscribe() cannot
+// wrap), so it still hands messages to the GUI thread with a queued Qt signal
+// carrying this shared_ptr; that requires the type to be a registered metatype.
+Q_DECLARE_METATYPE(sensor_msgs::msg::Image::ConstSharedPtr)
 
 #endif  // MAPVIZ_PLUGINS__IMAGE_PLUGIN_HPP_
