@@ -94,13 +94,17 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
 
   bool Initialize(QOpenGLWidget* canvas) override;
   void Shutdown() override;
-  void Draw(double x, double y, double scale) override;
-  void Transform() override;
-  void LoadConfig(const YAML::Node& node, const std::string& path) override;
-  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
   QWidget* GetConfigWidget(QWidget* parent) override;
 
  protected:
+  void Draw(double x, double y, double scale) override;
+
+  void Transform() override;
+
+  void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
+  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+
   void PrintError(const std::string& message) override;
   void PrintInfo(const std::string& message) override;
   void PrintWarning(const std::string& message) override;
@@ -124,7 +128,8 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
     bool ready{false};
   };
 
-  void robotDescriptionCallback(const std_msgs::msg::String::SharedPtr msg);
+  // Called on the GUI thread by Subscribe(); owns all plugin state.
+  void handleDescription(const std_msgs::msg::String::ConstSharedPtr description);
   void parseUrdf(const std::string& xml);
   void rebakeRaster(const std::vector<LinkGeometry>& geoms, double scale,
                     int canvas_max_dim, bool off_screen);
@@ -164,5 +169,6 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
 };
 
 }  // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__ROBOT_MODEL_PLUGIN_HPP_
