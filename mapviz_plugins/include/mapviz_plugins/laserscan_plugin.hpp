@@ -73,16 +73,17 @@ class LaserScanPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_
 
     void ClearHistory() override;
 
+    QWidget* GetConfigWidget(QWidget* parent) override;
+
+  protected:
     void Draw(double x, double y, double scale) override;
 
     void Transform() override;
 
     void LoadConfig(const YAML::Node& node, const std::string& path) override;
+
     void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
 
-    QWidget* GetConfigWidget(QWidget* parent) override;
-
-  protected:
     void PrintError(const std::string& message) override;
     void PrintInfo(const std::string& message) override;
     void PrintWarning(const std::string& message) override;
@@ -100,6 +101,10 @@ class LaserScanPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_
     void UpdateColors();
     void DrawIcon() override;
     void ResetTransformedScans();
+
+
+  private Q_SLOTS:
+    void handleLaserScan(const sensor_msgs::msg::LaserScan::ConstSharedPtr scan);
 
   private:
     struct StampedPoint
@@ -121,10 +126,9 @@ class LaserScanPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_
       bool has_intensity;
     };
 
-    void laserScanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan);
     void connectCallback(const std::string& topic, const rmw_qos_profile_t& qos);
     QColor CalculateColor(const StampedPoint& point, bool has_intensity);
-    void updatePreComputedTriginometic(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+    void updatePreComputedTriginometic(const sensor_msgs::msg::LaserScan::ConstSharedPtr msg);
 
     Ui::laserscan_config ui_;
     QWidget* config_widget_;
@@ -152,5 +156,6 @@ class LaserScanPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_
     bool GetScanTransform(const Scan &scan, swri_transform_util::Transform& transform);
 };
 }   // namespace mapviz_plugins
+
 
 #endif  // MAPVIZ_PLUGINS__LASERSCAN_PLUGIN_HPP_
