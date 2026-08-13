@@ -159,21 +159,23 @@ namespace mapviz_plugins
       return;
     } else if (!visible) {
       disparity_sub_.reset();
-      RCLCPP_INFO(node_->get_logger(), "Dropped subscription to %s", topic_.c_str());
+      RCLCPP_INFO(Logger(), "Dropped subscription to %s", topic_.c_str());
     } else {
-      disparity_sub_ = node_->create_subscription<stereo_msgs::msg::DisparityImage>(
-        topic_,
-        rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos_)),
-        std::bind(&DisparityPlugin::disparityCallback, this, std::placeholders::_1)
-      );
+      // Subscribe() delivers each message to handleDisparity() on the GUI
+      // thread, where plugin state may be touched without locking.
+      Subscribe<stereo_msgs::msg::DisparityImage>(
+        topic_, qos_, disparity_sub_,
+        [this](stereo_msgs::msg::DisparityImage::ConstSharedPtr disparity) {
+          handleDisparity(disparity);
+        });
 
-      RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+      RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
     }
   }
   void DisparityPlugin::SelectTopic()
   {
     auto [topic, qos] = SelectTopicDialog::selectTopic(
-      node_,
+      TopicSource(),
       "stereo_msgs/msg/DisparityImage",
       qos_);
 
@@ -218,19 +220,18 @@ namespace mapviz_plugins
 
       if (!topic.empty())
       {
-        disparity_sub_ = node_->create_subscription<stereo_msgs::msg::DisparityImage>(
-          topic_,
-          rclcpp::QoS(rclcpp::QoSInitialization::from_rmw(qos), qos),
-          std::bind(&DisparityPlugin::disparityCallback, this, std::placeholders::_1)
-        );
+        Subscribe<stereo_msgs::msg::DisparityImage>(
+          topic_, qos, disparity_sub_,
+          [this](stereo_msgs::msg::DisparityImage::ConstSharedPtr disparity) {
+            handleDisparity(disparity);
+          });
 
-        RCLCPP_INFO(node_->get_logger(), "Subscribing to %s", topic_.c_str());
+        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
       }
     }
   }
 
-  void DisparityPlugin::disparityCallback(
-    const stereo_msgs::msg::DisparityImage::SharedPtr disparity)
+  void DisparityPlugin::handleDisparity(const stereo_msgs::msg::DisparityImage::ConstSharedPtr disparity)
   {
     if (!has_message_)
     {
