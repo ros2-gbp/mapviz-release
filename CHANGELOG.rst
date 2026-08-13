@@ -2,6 +2,9 @@
 Changelog for package mapviz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.0.1 (2026-08-13)
+------------------
+
 4.0.0 (2026-08-12)
 ------------------
 * Switching to prefer Qt5 over Qt6 for systems where both are installed (`#899 <https://github.com/swri-robotics/mapviz/issues/899>`_)
