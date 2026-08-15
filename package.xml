@@ -1,6 +1,6 @@
 <package format="3">
   <name>mapviz</name>
-  <version>4.0.1</version>
+  <version>4.0.2</version>
   <description>
     2D mapping display with extensible data overlays 
   </description>
@@ -12,6 +12,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>pkg-config</buildtool_depend>
+  <buildtool_export_depend>pkg-config</buildtool_export_depend>
 
   <build_depend>qt-base-dev</build_depend>
 
