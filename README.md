@@ -1,3 +1,31 @@
+## mapviz (humble) - 4.0.3-1
+
+The packages in the `mapviz` repository were released into the `humble` distro by running `/usr/bin/bloom-release --edit --rosdistro humble mapviz` on `Sat, 22 Aug 2026 16:05:25 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_interfaces`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/ros2-gbp/mapviz-release.git
+- rosdistro version: `4.0.2-1`
+- old version: `4.0.2-1`
+- new version: `4.0.3-1`
+
+Versions of tools used:
+
+- bloom version: `0.14.3`
+- catkin_pkg version: `1.1.0`
+- rosdep version: `0.26.0`
+- rosdistro version: `1.0.1`
+- vcstools version: `0.1.42`
+
+
 ## mapviz (rolling) - 4.0.2-1
 
 The packages in the `mapviz` repository were released into the `rolling` distro by running `/usr/bin/bloom-release --edit --rosdistro rolling mapviz` on `Sat, 15 Aug 2026 21:52:27 -0000`
