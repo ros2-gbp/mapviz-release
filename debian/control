@@ -1,0 +1,13 @@
+Source: ros-humble-tile-map
+Section: misc
+Priority: optional
+Maintainer: "Southwest Research Institute" <swri-robotics@swri.org>
+Build-Depends: debhelper (>= 9.0.0), libjsoncpp-dev, libyaml-cpp-dev, qtbase5-dev, ros-humble-ament-cmake, ros-humble-mapviz, ros-humble-pluginlib, ros-humble-qt-gui-cpp, ros-humble-rclcpp, ros-humble-swri-math-util, ros-humble-swri-transform-util, ros-humble-tf2, ros-humble-ros-workspace
+Homepage: https://github.com/swri-robotics/mapviz
+Standards-Version: 3.9.2
+
+Package: ros-humble-tile-map
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libjsoncpp25, libqt5core5a, libqt5gui5, libqt5opengl5, libyaml-cpp-dev, qtbase5-dev, ros-humble-mapviz, ros-humble-pluginlib, ros-humble-qt-gui-cpp, ros-humble-rclcpp, ros-humble-swri-math-util, ros-humble-swri-transform-util, ros-humble-tf2, ros-humble-ros-workspace
+Description: Tile map provides a slippy map style interface for visualizing OpenStreetMap and GoogleMap tiles.
+ A mapviz visualization plug-in is also implemented
