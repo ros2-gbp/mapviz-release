@@ -1,6 +1,6 @@
 <package format="3">
   <name>tile_map</name>
-  <version>4.0.3</version>
+  <version>4.0.4</version>
   <description>
 
      Tile map provides a slippy map style interface for visualizing 
@@ -32,6 +32,8 @@
   <exec_depend>libqtcore</exec_depend>
   <exec_depend>libqtgui</exec_depend>
   <exec_depend>libqtopengl</exec_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
