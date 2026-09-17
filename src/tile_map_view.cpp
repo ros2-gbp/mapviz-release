@@ -87,8 +87,14 @@ namespace tile_map
 
   void TileMapView::SetTransform(const swri_transform_util::Transform& transform)
   {
-    if (transform.GetOrigin() == transform_.GetOrigin() &&
-        transform.GetOrientation() == transform_.GetOrientation())
+    // Reprojecting every tile corner is not free and this runs once per frame,
+    // so skip the work when the new transform is interchangeable with the one
+    // the tiles were already projected with. Comparing origins and orientations
+    // is not enough to tell this because a WGS84 transform onto an unrotated
+    // local XY frame originating at lat/lon (0, 0) shares both with the identity
+    // transform. The lat/lon (0,0) is especially important for Gazebo that tends
+    // to use this transform. This asks the transform implementation itself.
+    if (transform == transform_)
     {
       return;
     }
@@ -315,9 +321,15 @@ namespace tile_map
     bool failed;
     tile.texture = tile_cache_->GetTexture(tile.url_hash, tile.url, failed, priority);
 
+    // Tiles at the lowest zoom levels span enough of the globe that the Mercator
+    // projection curves noticeably across them, so they are drawn as a grid of
+    // quads that follows the curve rather than as a single quad. The grid has to
+    // cover exactly one tile, in both geometry and texture coordinates, so the
+    // width of a quad is one divided by the number of quads along an edge.
+    // Deriving subwidth from subdiv_count keeps the two from disagreeing.
     int32_t subdivs = std::max(0, 4 - level);
-    tile.subwidth = 1.0 / (subdivs + 1.0);
     tile.subdiv_count = std::pow(2, subdivs);
+    tile.subwidth = 1.0 / tile.subdiv_count;
     for (int32_t row = 0; row <= tile.subdiv_count; row++)
     {
       for (int32_t col = 0; col <= tile.subdiv_count; col++)
