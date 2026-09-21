@@ -92,10 +92,14 @@ namespace mapviz
 constexpr int VERTICAL_LABEL_PADDING_VERTICAL = 4;
 constexpr int VERTICAL_LABEL_PADDING_HORIZONTAL = 8;
 
-// Minimum width for config panel when pinned. Set to 332 pixels to accommodate
-// the UI layout including labels, spinboxes, and buttons while maintaining
-// usability with reasonable display resolutions and DPI scaling
-constexpr int CONFIG_PANEL_PINNED_WIDTH = 332;
+// Minimum width for config panel when pinned.  This has to cover the widest row
+// the dock lays out, otherwise Qt quietly overrides it: a QLayout never shrinks
+// below its own minimum, so asking for less than the contents need leaves
+// resizeDocks() and setMinimumWidth() with no effect.  The Add/Duplicate/Remove/
+// Rename row is the widest at roughly 370 pixels; the settings grid above it
+// needs about 305.  Both grow with display DPI and font scaling, so this is a
+// floor rather than an exact fit.
+constexpr int CONFIG_PANEL_PINNED_WIDTH = 380;
 // Minimum width for collapsed state, set to accommodate the vertical label 
 constexpr int CONFIG_PANEL_COLLAPSED_WIDTH = 28;  
 
@@ -305,6 +309,20 @@ Mapviz::Mapviz(bool is_standalone, int argc, char** argv, QWidget *parent, Qt::W
     this,
     SLOT(SelectBackgroundColor(const QColor &)));
 
+  connect(ui_.duplicatebutton, SIGNAL(clicked()), this, SLOT(DuplicateDisplay()));
+  connect(ui_.renamebutton, SIGNAL(clicked()), this, SLOT(RenameDisplay()));
+
+  connect(
+    ui_.min_view_scale,
+    SIGNAL(valueChanged(double)),
+    this,
+    SLOT(SetMinViewScale(double)));
+  connect(
+    ui_.max_view_scale,
+    SIGNAL(valueChanged(double)),
+    this,
+    SLOT(SetMaxViewScale(double)));
+
   connect(recenter_button_, SIGNAL(clicked()), this, SLOT(Recenter()));
   connect(rec_button_, SIGNAL(toggled(bool)), this, SLOT(ToggleRecord(bool)));
   connect(stop_button_, SIGNAL(clicked()), this, SLOT(StopRecord()));
@@ -352,12 +370,12 @@ rclcpp::Node::SharedPtr Mapviz::GetNode()
   return node_;
 }
 
-void Mapviz::showEvent(QShowEvent* event)
+void Mapviz::showEvent(QShowEvent* /*event*/)
 {
   Initialize();
 }
 
-void Mapviz::closeEvent(QCloseEvent* event)
+void Mapviz::closeEvent(QCloseEvent* /*event*/)
 {
   AutoSave();
 
@@ -819,6 +837,16 @@ void Mapviz::Open(const std::string& filename)
       resize(width(), window_height);
     }
 
+    if (doc["min_view_scale"]) {
+      double scale = doc["min_view_scale"].as<double>();
+      ui_.min_view_scale->setValue(scale);
+    }
+
+    if (doc["max_view_scale"]) {
+      double scale = doc["max_view_scale"].as<double>();
+      ui_.max_view_scale->setValue(scale);
+    }
+
     if (doc["view_scale"]) {
       float scale = doc["view_scale"].as<float>();
       canvas_->SetViewScale(scale);
@@ -981,6 +1009,8 @@ void Mapviz::Save(const std::string& filename)
   out << YAML::Key << "window_height" << YAML::Value << height();
   out << YAML::Key << "panel_width" << YAML::Value << ui_.configdock->width();
   out << YAML::Key << "view_scale" << YAML::Value << canvas_->ViewScale();
+  out << YAML::Key << "min_view_scale" << YAML::Value << canvas_->MinViewScale();
+  out << YAML::Key << "max_view_scale" << YAML::Value << canvas_->MaxViewScale();
   out << YAML::Key << "offset_x" << YAML::Value << canvas_->OffsetX();
   out << YAML::Key << "offset_y" << YAML::Value << canvas_->OffsetY();
   out << YAML::Key
@@ -1804,6 +1834,22 @@ void Mapviz::ReorderDisplays()
     plugins_[ui_.configs->item(i)]->SetDrawOrder(i);
   }
   canvas_->ReorderDisplays();
+}
+
+void Mapviz::SetMinViewScale(double scale)
+{
+  // Each spin box bounds the other, so the pair can never ask the canvas for an
+  // inverted range.  Update the sibling's bound before the canvas so that if
+  // raising this value drags the other one up, the canvas sees the widened
+  // maximum first and never has to reject the pair.
+  ui_.max_view_scale->setMinimum(scale);
+  canvas_->SetMinViewScale(static_cast<float>(scale));
+}
+
+void Mapviz::SetMaxViewScale(double scale)
+{
+  ui_.min_view_scale->setMaximum(scale);
+  canvas_->SetMaxViewScale(static_cast<float>(scale));
 }
 
 void Mapviz::SelectBackgroundColor(const QColor &color)
