@@ -48,8 +48,6 @@ namespace tile_map
     const std::unique_ptr<QOpenGLTexture>& GetTexture() const { return texture_; }
     const size_t url_hash;
 
-    bool failed;
-
   private:
     std::unique_ptr<QOpenGLTexture> texture_;
   };
@@ -70,6 +68,10 @@ namespace tile_map
     void SetLogger(rclcpp::Logger logger);
 
     void Clear();
+
+    /// The image cache lives for as long as this texture cache does, so callers
+    /// may connect to its signals once and keep the connection.
+    ImageCachePtr GetImageCache() { return image_cache_; }
 
   private:
     QCache<size_t, TexturePtr> cache_;
