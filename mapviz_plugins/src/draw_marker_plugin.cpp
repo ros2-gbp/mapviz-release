@@ -27,7 +27,7 @@
 //
 // *****************************************************************************
 
-#include <mapviz_plugins/draw_polygon_plugin.hpp>
+#include <mapviz_plugins/draw_marker_plugin.hpp>
 
 // QT libraries
 #include <QDateTime>
@@ -36,8 +36,7 @@
 #include <QMouseEvent>
 #include <QPalette>
 
-#include <geometry_msgs/msg/point32.hpp>
-#include <geometry_msgs/msg/polygon_stamped.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <mapviz/select_frame_dialog.hpp>
 #include <mapviz/qt_mouse_event_compat.hpp>
 
@@ -51,13 +50,13 @@
 #include <string>
 #include <vector>
 
-PLUGINLIB_EXPORT_CLASS(mapviz_plugins::DrawPolygonPlugin, mapviz::MapvizPlugin)
+PLUGINLIB_EXPORT_CLASS(mapviz_plugins::DrawMarkerPlugin, mapviz::MapvizPlugin)
 
 namespace stu = swri_transform_util;
 
 namespace mapviz_plugins
 {
-  DrawPolygonPlugin::DrawPolygonPlugin()
+  DrawMarkerPlugin::DrawMarkerPlugin()
   : MapvizPlugin()
   , ui_()
   , config_widget_(new QWidget())
@@ -85,12 +84,12 @@ namespace mapviz_plugins
     QObject::connect(ui_.frame, SIGNAL(editingFinished()), this,
                      SLOT(FrameEdited()));
     QObject::connect(ui_.publish, SIGNAL(clicked()), this,
-                     SLOT(PublishPolygon()));
+                     SLOT(PublishMarker()));
     QObject::connect(ui_.clear, SIGNAL(clicked()), this,
                      SLOT(Clear()));
   }
 
-  DrawPolygonPlugin::~DrawPolygonPlugin()
+  DrawMarkerPlugin::~DrawMarkerPlugin()
   {
     if (map_canvas_)
     {
@@ -98,7 +97,31 @@ namespace mapviz_plugins
     }
   }
 
-  void DrawPolygonPlugin::SelectFrame()
+  int32_t DrawMarkerPlugin::SelectedMarkerType() const
+  {
+    switch (ui_.marker_type->currentIndex())
+    {
+      case SHAPE_POINTS:
+        return visualization_msgs::msg::Marker::POINTS;
+      case SHAPE_LINE_STRIP:
+      case SHAPE_CLOSED_POLYGON:
+        return visualization_msgs::msg::Marker::LINE_STRIP;
+      case SHAPE_SPHERES:
+        return visualization_msgs::msg::Marker::SPHERE_LIST;
+      case SHAPE_CUBES:
+        return visualization_msgs::msg::Marker::CUBE_LIST;
+      default:
+        return visualization_msgs::msg::Marker::POINTS;
+    }
+  }
+
+  bool DrawMarkerPlugin::SelectedShapeIsLine() const
+  {
+    const int index = ui_.marker_type->currentIndex();
+    return index == SHAPE_LINE_STRIP || index == SHAPE_CLOSED_POLYGON;
+  }
+
+  void DrawMarkerPlugin::SelectFrame()
   {
     std::string frame = mapviz::SelectFrameDialog::selectFrame(tf_buf_);
     if (!frame.empty())
@@ -108,72 +131,112 @@ namespace mapviz_plugins
     }
   }
 
-  void DrawPolygonPlugin::FrameEdited()
+  void DrawMarkerPlugin::FrameEdited()
   {
     source_frame_ = ui_.frame->text().toStdString();
     PrintWarning("Waiting for transform.");
 
-    RCLCPP_INFO(Logger(), "Setting target frame to to %s", source_frame_.c_str());
+    RCLCPP_INFO(Logger(), "Setting target frame to %s", source_frame_.c_str());
 
     initialized_ = true;
   }
 
-  void DrawPolygonPlugin::PublishPolygon()
+  void DrawMarkerPlugin::PublishMarker()
   {
-    if (polygon_topic_ != ui_.topic->text().toStdString())
+    if (marker_topic_ != ui_.topic->text().toStdString())
     {
-      polygon_topic_ = ui_.topic->text().toStdString();
+      marker_topic_ = ui_.topic->text().toStdString();
       rclcpp::QoS qos = rclcpp::QoS(1).durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-      polygon_pub_ = Publisher<geometry_msgs::msg::PolygonStamped>(
-          polygon_topic_, qos);
+      marker_pub_ = Publisher<visualization_msgs::msg::Marker>(marker_topic_, qos);
     }
 
-    geometry_msgs::msg::PolygonStamped::UniquePtr polygon =
-        std::make_unique<geometry_msgs::msg::PolygonStamped>();
-    polygon->header.stamp = Clock()->now();
-    polygon->header.frame_id = ui_.frame->text().toStdString();
+    visualization_msgs::msg::Marker::UniquePtr marker =
+        std::make_unique<visualization_msgs::msg::Marker>();
+    marker->header.stamp = Clock()->now();
+    marker->header.frame_id = ui_.frame->text().toStdString();
+    marker->ns = ui_.marker_ns->text().toStdString();
+    marker->id = ui_.marker_id->value();
+    marker->type = SelectedMarkerType();
+
+    if (vertices_.empty())
+    {
+      // Publishing an ADD with no points leaves whatever was published before
+      // on screen, so clearing the plugin and publishing removes the marker.
+      marker->action = visualization_msgs::msg::Marker::DELETE;
+      marker_pub_->publish(*marker);
+      PrintInfo("Published DELETE for " + marker->ns + "/" + std::to_string(marker->id));
+      return;
+    }
+
+    marker->action = visualization_msgs::msg::Marker::ADD;
+    // An all-zero quaternion is invalid and consumers warn about it, so set an
+    // explicit identity even though the points carry the geometry.
+    marker->pose.orientation.w = 1.0;
+
+    const double scale = ui_.scale->value();
+    marker->scale.x = scale;
+    // For a line strip only scale.x is read, as the line width.  For the point
+    // and list types every axis is the marker size.
+    marker->scale.y = scale;
+    marker->scale.z = scale;
+
+    const QColor color = ui_.color->color();
+    marker->color.r = static_cast<float>(color.redF());
+    marker->color.g = static_cast<float>(color.greenF());
+    marker->color.b = static_cast<float>(color.blueF());
+    marker->color.a = static_cast<float>(ui_.alpha->value());
 
     for (const auto& vertex : vertices_)
     {
-      geometry_msgs::msg::Point32 point;
+      geometry_msgs::msg::Point point;
       point.x = vertex.x();
       point.y = vertex.y();
-      point.z = 0;
-      polygon->polygon.points.push_back(point);
+      point.z = 0.0;
+      marker->points.push_back(point);
     }
 
-    polygon_pub_->publish(*polygon);
+    // A closed polygon is a line strip that returns to where it started.  The
+    // first point is copied out before the push_back rather than passed as a
+    // reference into the vector being grown.
+    if (ui_.marker_type->currentIndex() == SHAPE_CLOSED_POLYGON && marker->points.size() > 2)
+    {
+      const geometry_msgs::msg::Point first = marker->points.front();
+      marker->points.push_back(first);
+    }
+
+    marker_pub_->publish(*marker);
+    PrintInfo("Published " + std::to_string(marker->points.size()) + " points");
   }
 
-  void DrawPolygonPlugin::Clear()
+  void DrawMarkerPlugin::Clear()
   {
     vertices_.clear();
     transformed_vertices_.clear();
   }
 
-  void DrawPolygonPlugin::PrintError(const std::string& message)
+  void DrawMarkerPlugin::PrintError(const std::string& message)
   {
     PrintErrorHelper(ui_.status, message, 1.0);
   }
 
-  void DrawPolygonPlugin::PrintInfo(const std::string& message)
+  void DrawMarkerPlugin::PrintInfo(const std::string& message)
   {
     PrintInfoHelper(ui_.status, message, 1.0);
   }
 
-  void DrawPolygonPlugin::PrintWarning(const std::string& message)
+  void DrawMarkerPlugin::PrintWarning(const std::string& message)
   {
     PrintWarningHelper(ui_.status, message, 1.0);
   }
 
-  QWidget* DrawPolygonPlugin::GetConfigWidget(QWidget* parent)
+  QWidget* DrawMarkerPlugin::GetConfigWidget(QWidget* parent)
   {
     config_widget_->setParent(parent);
 
     return config_widget_;
   }
 
-  bool DrawPolygonPlugin::Initialize(QOpenGLWidget* canvas)
+  bool DrawMarkerPlugin::Initialize(QOpenGLWidget* canvas)
   {
     map_canvas_ = dynamic_cast<mapviz::MapCanvas*>(canvas);
     map_canvas_->installEventFilter(this);
@@ -185,7 +248,7 @@ namespace mapviz_plugins
     return true;
   }
 
-  bool DrawPolygonPlugin::eventFilter(QObject */*object*/, QEvent* event)
+  bool DrawMarkerPlugin::eventFilter(QObject* /*object*/, QEvent* event)
   {
     switch (event->type())
     {
@@ -200,14 +263,14 @@ namespace mapviz_plugins
     }
   }
 
-  bool DrawPolygonPlugin::handleMousePress(QMouseEvent* event)
+  bool DrawMarkerPlugin::handleMousePress(QMouseEvent* event)
   {
-    if(!this->Visible())
+    if (!this->Visible())
     {
-      RCLCPP_DEBUG(Logger(), "Ignoring mouse press, since draw polygon plugin is hidden");
+      RCLCPP_DEBUG(Logger(), "Ignoring mouse press, since draw marker plugin is hidden");
       return false;
     }
-    
+
     selected_point_ = -1;
     int closest_point = 0;
     double closest_distance = std::numeric_limits<double>::max();
@@ -258,7 +321,7 @@ namespace mapviz_plugins
     return false;
   }
 
-  bool DrawPolygonPlugin::handleMouseRelease(QMouseEvent* event)
+  bool DrawMarkerPlugin::handleMouseRelease(QMouseEvent* event)
   {
     std::string frame = ui_.frame->text().toStdString();
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
@@ -288,13 +351,6 @@ namespace mapviz_plugins
       if (msecsDiff < max_ms_ && distance <= max_distance_)
       {
         QPointF transformed = map_canvas_->MapGlCoordToFixedFrame(point);
-        RCLCPP_INFO(
-          Logger(),
-          "mouse point at %f, %f -> %f, %f",
-          point.x(),
-          point.y(),
-          transformed.x(),
-          transformed.y());
 
         stu::Transform transform;
         tf2::Vector3 position(transformed.x(), transformed.y(), 0.0);
@@ -318,7 +374,7 @@ namespace mapviz_plugins
     return false;
   }
 
-  bool DrawPolygonPlugin::handleMouseMove(QMouseEvent* event)
+  bool DrawMarkerPlugin::handleMouseMove(QMouseEvent* event)
   {
     if (selected_point_ >= 0 && static_cast<size_t>(selected_point_) < vertices_.size())
     {
@@ -339,61 +395,58 @@ namespace mapviz_plugins
     return false;
   }
 
-  void DrawPolygonPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
+  void DrawMarkerPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
   {
     stu::Transform transform;
     std::string frame = ui_.frame->text().toStdString();
     if (!tf_manager_->GetTransform(target_frame_, frame, transform))
     {
+      PrintError("No transform between " + frame + " and " + target_frame_);
       return;
     }
 
-    // Transform polygon
     for (size_t i = 0; i < vertices_.size(); i++)
     {
       transformed_vertices_[i] = transform * vertices_[i];
     }
 
-    glLineWidth(1);
     const QColor color = ui_.color->color();
-    glColor4d(color.redF(), color.greenF(), color.blueF(), 1.0);
-    glBegin(GL_LINE_STRIP);
+    const double alpha = ui_.alpha->value();
 
-    for (const auto& vertex : transformed_vertices_)
+    // Preview the shape the way it will be published, so that switching the
+    // type shows what the marker will look like before anything is sent.
+    if (SelectedShapeIsLine() && transformed_vertices_.size() > 1)
     {
-      glVertex2d(vertex.x(), vertex.y());
+      glLineWidth(2);
+      glColor4d(color.redF(), color.greenF(), color.blueF(), alpha);
+      glBegin(GL_LINE_STRIP);
+      for (const auto& vertex : transformed_vertices_)
+      {
+        glVertex2d(vertex.x(), vertex.y());
+      }
+      if (ui_.marker_type->currentIndex() == SHAPE_CLOSED_POLYGON &&
+          transformed_vertices_.size() > 2)
+      {
+        glVertex2d(transformed_vertices_.front().x(), transformed_vertices_.front().y());
+      }
+      glEnd();
     }
 
-    glEnd();
-
-    glBegin(GL_LINES);
-
-    glColor4d(color.redF(), color.greenF(), color.blueF(), 0.25);
-
-    if (transformed_vertices_.size() > 2)
-    {
-      glVertex2d(transformed_vertices_.front().x(), transformed_vertices_.front().y());
-      glVertex2d(transformed_vertices_.back().x(), transformed_vertices_.back().y());
-    }
-
-    glEnd();
-
-    // Draw vertices
+    // The vertices are always drawn so that they stay grabbable regardless of
+    // which shape is selected.
     glPointSize(9);
+    glColor4d(color.redF(), color.greenF(), color.blueF(), alpha);
     glBegin(GL_POINTS);
-
     for (const auto& vertex : transformed_vertices_)
     {
       glVertex2d(vertex.x(), vertex.y());
     }
     glEnd();
-
-
 
     PrintInfo("OK");
   }
 
-  void DrawPolygonPlugin::LoadConfig(const YAML::Node& node, const std::string& /*path*/)
+  void DrawMarkerPlugin::LoadConfig(const YAML::Node& node, const std::string& /*path*/)
   {
     if (node["frame"])
     {
@@ -401,27 +454,77 @@ namespace mapviz_plugins
       ui_.frame->setText(source_frame_.c_str());
     }
 
-    if (node["polygon_topic"])
+    if (node["topic"])
     {
-      std::string polygon_topic = node["polygon_topic"].as<std::string>();
-      ui_.topic->setText(polygon_topic.c_str());
+      ui_.topic->setText(node["topic"].as<std::string>().c_str());
     }
+
+    if (node["type"])
+    {
+      int type = node["type"].as<int>();
+      if (type >= 0 && type < ui_.marker_type->count())
+      {
+        ui_.marker_type->setCurrentIndex(type);
+      }
+    }
+
+    if (node["namespace"])
+    {
+      ui_.marker_ns->setText(node["namespace"].as<std::string>().c_str());
+    }
+
+    if (node["id"])
+    {
+      ui_.marker_id->setValue(node["id"].as<int>());
+    }
+
     if (node["color"])
     {
-      std::string color = node["color"].as<std::string>();
-      ui_.color->setColor(QColor(color.c_str()));
+      ui_.color->setColor(QColor(node["color"].as<std::string>().c_str()));
+    }
+
+    if (node["alpha"])
+    {
+      ui_.alpha->setValue(node["alpha"].as<double>());
+    }
+
+    if (node["scale"])
+    {
+      ui_.scale->setValue(node["scale"].as<double>());
+    }
+
+    // Restoring the vertices is what makes a drawing outlive the session it was
+    // made in; without it the plugin comes back configured but empty.
+    if (node["vertices"])
+    {
+      vertices_.clear();
+      for (const auto& vertex : node["vertices"])
+      {
+        if (vertex.size() >= 2)
+        {
+          vertices_.emplace_back(vertex[0].as<double>(), vertex[1].as<double>(), 0.0);
+        }
+      }
+      transformed_vertices_.resize(vertices_.size());
     }
   }
 
-  void DrawPolygonPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& /*path*/)
+  void DrawMarkerPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& /*path*/)
   {
-    std::string frame = ui_.frame->text().toStdString();
-    emitter << YAML::Key << "frame" << YAML::Value << frame;
+    emitter << YAML::Key << "frame" << YAML::Value << ui_.frame->text().toStdString();
+    emitter << YAML::Key << "topic" << YAML::Value << ui_.topic->text().toStdString();
+    emitter << YAML::Key << "type" << YAML::Value << ui_.marker_type->currentIndex();
+    emitter << YAML::Key << "namespace" << YAML::Value << ui_.marker_ns->text().toStdString();
+    emitter << YAML::Key << "id" << YAML::Value << ui_.marker_id->value();
+    emitter << YAML::Key << "color" << YAML::Value << ui_.color->color().name().toStdString();
+    emitter << YAML::Key << "alpha" << YAML::Value << ui_.alpha->value();
+    emitter << YAML::Key << "scale" << YAML::Value << ui_.scale->value();
 
-    std::string polygon_topic = ui_.topic->text().toStdString();
-    emitter << YAML::Key << "polygon_topic" << YAML::Value << polygon_topic;
-
-    std::string color = ui_.color->color().name().toStdString();
-    emitter << YAML::Key << "color" << YAML::Value << color;
+    emitter << YAML::Key << "vertices" << YAML::Value << YAML::BeginSeq;
+    for (const auto& vertex : vertices_)
+    {
+      emitter << YAML::Flow << YAML::BeginSeq << vertex.x() << vertex.y() << YAML::EndSeq;
+    }
+    emitter << YAML::EndSeq;
   }
 }   // namespace mapviz_plugins
