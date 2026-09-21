@@ -1,17 +1,17 @@
-cmake_minimum_required(VERSION 3.10...3.17)
+cmake_minimum_required(VERSION 3.14.4)
 
-if (NOT CMAKE_CXX_STANDARD)
+project(mapviz_plugins
+  LANGUAGES CXX)
+
+if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
-
-project(mapviz_plugins
-  LANGUAGES CXX)
 
 function(mapviz_plugins_ensure_interface_alias alias_target dependency_target)
   if(TARGET ${alias_target})
@@ -68,34 +68,23 @@ find_package(marti_common_msgs REQUIRED)
 find_package(marti_nav_msgs REQUIRED)
 find_package(marti_sensor_msgs REQUIRED)
 find_package(marti_visualization_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
 find_package(stereo_msgs REQUIRED)
 find_package(swri_image_util REQUIRED)
 find_package(swri_math_util REQUIRED)
-find_package(qt_gui_cpp REQUIRED)
 find_package(swri_route_util REQUIRED)
 find_package(swri_transform_util REQUIRED)
 find_package(tf2 REQUIRED)
-find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(assimp REQUIRED)
 find_package(urdf REQUIRED)
 find_package(visualization_msgs REQUIRED)
-
-# The move_base plugin drives Nav2's NavigateToPose action.  Nav2 is an
-# optional dependency: build the plugin only when nav2_msgs is present, so
-# mapviz_plugins itself does not force a dependency on the Nav2 stack.
-find_package(nav2_msgs QUIET)
-if(nav2_msgs_FOUND)
-  find_package(rclcpp_action REQUIRED)
-  message(STATUS "mapviz_plugins: nav2_msgs found; building the move_base plugin")
-else()
-  message(STATUS "mapviz_plugins: nav2_msgs not found; skipping the move_base plugin")
-endif()
 
 # urdf renamed model.h to model.hpp in some distros (not yet in ROS Humble).
 # Detect which header is actually available rather than assuming by distro.
@@ -125,12 +114,12 @@ if(NOT Qt5_FOUND)
   )
 endif()
 
-find_package(OpenCV QUIET CONFIG COMPONENTS core imgproc highgui)
+find_package(OpenCV QUIET CONFIG COMPONENTS core imgcodecs imgproc)
 if(NOT OpenCV_FOUND)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(OpenCV REQUIRED IMPORTED_TARGET opencv4)
 endif()
-foreach(component IN ITEMS core imgproc highgui)
+foreach(component IN ITEMS core imgcodecs imgproc)
   mapviz_plugins_ensure_opencv_component(${component})
 endforeach()
 
@@ -143,6 +132,7 @@ set(UI_FILES
   ui/attitude_indicator_config.ui
   ui/coordinate_picker_config.ui
   ui/disparity_config.ui
+  ui/draw_marker_config.ui
   ui/draw_polygon_config.ui
   ui/float_config.ui
   ui/gps_config.ui
@@ -161,9 +151,11 @@ set(UI_FILES
   ui/pose_config.ui
   ui/robot_image_config.ui
   ui/route_config.ui
+  ui/speedometer_config.ui
   ui/string_config.ui
   ui/textured_marker_config.ui
   ui/robot_model_config.ui
+  ui/move_base_config.ui
   ui/tf_frame_config.ui
   ui/topicselect.ui)
 
@@ -172,6 +164,7 @@ set(SRC_FILES
   src/canvas_click_filter.cpp
   src/coordinate_picker_plugin.cpp
   src/disparity_plugin.cpp
+  src/draw_marker_plugin.cpp
   src/draw_polygon_plugin.cpp
   src/float_plugin.cpp
   src/gps_plugin.cpp
@@ -180,6 +173,7 @@ set(SRC_FILES
   src/laserscan_plugin.cpp
   src/marker_plugin.cpp
   src/measuring_plugin.cpp
+  src/move_base_plugin.cpp
   src/navsat_plugin.cpp
   src/occupancy_grid_plugin.cpp
   src/odometry_plugin.cpp
@@ -193,6 +187,7 @@ set(SRC_FILES
   src/robot_model_plugin.cpp
   src/robot_image_plugin.cpp
   src/route_plugin.cpp
+  src/speedometer_plugin.cpp
   src/string_plugin.cpp
   src/textured_marker_plugin.cpp
   src/tf_frame_plugin.cpp
@@ -203,6 +198,7 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/canvas_click_filter.hpp
   include/${PROJECT_NAME}/coordinate_picker_plugin.hpp
   include/${PROJECT_NAME}/disparity_plugin.hpp
+  include/${PROJECT_NAME}/draw_marker_plugin.hpp
   include/${PROJECT_NAME}/draw_polygon_plugin.hpp
   include/${PROJECT_NAME}/float_plugin.hpp
   include/${PROJECT_NAME}/gps_plugin.hpp
@@ -211,6 +207,7 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/laserscan_plugin.hpp
   include/${PROJECT_NAME}/marker_plugin.hpp
   include/${PROJECT_NAME}/measuring_plugin.hpp
+  include/${PROJECT_NAME}/move_base_plugin.hpp
   include/${PROJECT_NAME}/navsat_plugin.hpp
   include/${PROJECT_NAME}/occupancy_grid_plugin.hpp
   include/${PROJECT_NAME}/odometry_plugin.hpp
@@ -224,17 +221,11 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/robot_model_plugin.hpp
   include/${PROJECT_NAME}/robot_image_plugin.hpp
   include/${PROJECT_NAME}/route_plugin.hpp
+  include/${PROJECT_NAME}/speedometer_plugin.hpp
   include/${PROJECT_NAME}/string_plugin.hpp
   include/${PROJECT_NAME}/textured_marker_plugin.hpp
   include/${PROJECT_NAME}/tf_frame_plugin.hpp
   include/${PROJECT_NAME}/topic_select.hpp)
-
-# Append the optional move_base plugin's files only when Nav2 is available.
-if(nav2_msgs_FOUND)
-  list(APPEND UI_FILES ui/move_base_config.ui)
-  list(APPEND SRC_FILES src/move_base_plugin.cpp)
-  list(APPEND HEADER_FILES include/${PROJECT_NAME}/move_base_plugin.hpp)
-endif()
 
 set(MAPVIZ_PLUGINS_QT_LIBRARIES
   Qt${QT_VERSION_MAJOR}::Core
@@ -270,7 +261,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/${PACKAGE_NAME}>)
+    $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
 target_compile_definitions(${PROJECT_NAME}
   PUBLIC
@@ -295,8 +286,8 @@ if(MAPVIZ_PLUGINS_HAVE_URDF_MODEL_HPP)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-    ament_index_cpp::ament_index_cpp
     cv_bridge::cv_bridge
+    ${geometry_msgs_TARGETS}
     ${gps_msgs_TARGETS}
     image_transport::image_transport
     ${map_msgs_TARGETS}
@@ -305,34 +296,31 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${marti_nav_msgs_TARGETS}
     ${marti_sensor_msgs_TARGETS}
     ${marti_visualization_msgs_TARGETS}
+    ${nav2_msgs_TARGETS}
     ${nav_msgs_TARGETS}
     opencv_core
-    opencv_imgproc
-    opencv_highgui
-    pluginlib::pluginlib
     ${MAPVIZ_PLUGINS_QT_LIBRARIES}
     rclcpp::rclcpp
+    rclcpp_action::rclcpp_action
     ${sensor_msgs_TARGETS}
-    sensor_msgs::sensor_msgs_library
     ${std_msgs_TARGETS}
-    ${std_srvs_TARGETS}
     ${stereo_msgs_TARGETS}
-    ${swri_image_util_TARGETS}
-    ${swri_transform_util_TARGETS}
     ${swri_route_util_TARGETS}
+    ${swri_transform_util_TARGETS}
     tf2::tf2
-    tf2_ros::tf2_ros
-    ${urdf_TARGETS}
     ${visualization_msgs_TARGETS})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
-
-# Link the optional move_base plugin's dependencies when it is being built.
-if(nav2_msgs_FOUND)
-  target_link_libraries(${PROJECT_NAME} PUBLIC
-    ${nav2_msgs_TARGETS}
-    rclcpp_action::rclcpp_action)
-endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ament_index_cpp::ament_index_cpp
+    assimp::assimp
+    opencv_imgcodecs
+    opencv_imgproc
+    pluginlib::pluginlib
+    sensor_msgs::sensor_msgs_library
+    ${swri_image_util_TARGETS}
+    ${swri_math_util_TARGETS}
+    tf2_geometry_msgs::tf2_geometry_msgs
+    ${urdf_TARGETS})
 
 ### Install the plugins ###
 install(DIRECTORY include/
@@ -350,16 +338,28 @@ install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib)
 
 pluginlib_export_plugin_description_file(mapviz mapviz_plugins.xml)
+pluginlib_export_plugin_description_file(mapviz move_base_plugin.xml)
 
-# Register and export the move_base plugin only when it was built.
-if(nav2_msgs_FOUND)
-  pluginlib_export_plugin_description_file(mapviz move_base_plugin.xml)
-  ament_export_dependencies(nav2_msgs rclcpp_action)
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  # The plugins build Qt widgets in their constructors, so the test needs a
+  # platform plugin that works without a display.
+  ament_add_gtest(test_plugin_config test/test_plugin_config.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plugin_config)
+    # ament_add_gtest() already used the plain signature on this target.
+    target_link_libraries(test_plugin_config ${PROJECT_NAME})
+    # The plugin headers include their AUTOUIC generated ui_*.h, which land in
+    # the library target's autogen directory rather than on its usage
+    # requirements.
+    target_include_directories(test_plugin_config
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
 endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
-  ament_index_cpp
   cv_bridge
   geometry_msgs
   gps_msgs
@@ -371,18 +371,15 @@ ament_export_dependencies(
   marti_sensor_msgs
   marti_visualization_msgs
   nav_msgs
-  pluginlib
+  nav2_msgs
   ${MAPVIZ_PLUGINS_QT_EXPORT_DEPENDENCIES}
   rclcpp
+  rclcpp_action
   sensor_msgs
   std_msgs
-  std_srvs
   stereo_msgs
-  swri_image_util
   swri_route_util
   swri_transform_util
   tf2
-  tf2_ros
-  urdf
   visualization_msgs)
 ament_package(CONFIG_EXTRAS cmake/mapviz_plugins-extras.cmake)
