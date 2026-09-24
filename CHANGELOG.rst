@@ -2,6 +2,14 @@
 Changelog for package mapviz_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.1.1 (2026-09-24)
+------------------
+
+4.1.0 (2026-09-20)
+------------------
+* Cleaning up dependencies, versions, scopes, etc. (`#920 <https://github.com/swri-robotics/mapviz/issues/920>`_)
+* Contributors: David Anthony
+
 4.0.4 (2026-09-17)
 ------------------
 
