@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2017, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -29,10 +28,10 @@
 #ifndef MAPVIZ__STOPWATCH_HPP_
 #define MAPVIZ__STOPWATCH_HPP_
 
-#include <rclcpp/rclcpp.hpp>
-
 #include <algorithm>
 #include <string>
+
+#include <rclcpp/rclcpp.hpp>
 
 
 namespace mapviz
@@ -44,10 +43,9 @@ namespace mapviz
  */
 class Stopwatch
 {
- public:
+public:
   Stopwatch()
-    :
-    count_(0),
+  : count_(0),
     clock(),
     total_time_(0, 0),
     max_time_(0, 0),
@@ -73,7 +71,7 @@ class Stopwatch
   }
 
   /* Return the number of intervals measured. */
-  int count() const { return count_; }
+  int count() const {return count_;}
 
   /* Returns the longest observed duration. */
   rclcpp::Duration maxTime() const {return max_time_;}
@@ -82,31 +80,33 @@ class Stopwatch
   rclcpp::Duration avgTime() const
   {
     if (count_) {
-      return total_time_*(1.0/count_);
+      return total_time_ * (1.0 / count_);
     } else {
       return rclcpp::Duration(0, 0);
     }
   }
 
   /* Print measurement info to the ROS console. */
-  void printInfo(rclcpp::Logger logger, const std::string &name) const
+  void printInfo(rclcpp::Logger logger, const std::string & name) const
   {
     if (count_) {
-      RCLCPP_INFO(logger,
-                "%s -- calls: %d, avg time: %.2fms, max time: %.2fms",
-                name.c_str(),
-                count_,
-                avgTime().seconds()*1000.0,
-                maxTime().seconds()*1000.0);
+      RCLCPP_INFO(
+        logger,
+        "%s -- calls: %d, avg time: %.2fms, max time: %.2fms",
+        name.c_str(),
+        count_,
+        avgTime().seconds() * 1000.0,
+        maxTime().seconds() * 1000.0);
     } else {
-      RCLCPP_INFO(logger,
-                "%s -- calls: %d, avg time: --ms, max time: --ms",
-                name.c_str(),
-                count_);
+      RCLCPP_INFO(
+        logger,
+        "%s -- calls: %d, avg time: --ms, max time: --ms",
+        name.c_str(),
+        count_);
     }
   }
 
- private:
+private:
   int count_;
   rclcpp::Clock clock;
   rclcpp::Duration total_time_;
