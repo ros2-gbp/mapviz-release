@@ -1,37 +1,37 @@
 // *****************************************************************************
 //
-// Copyright (C) 2013 All Right Reserved, Southwest Research Institute® (SwRI®)
+// Copyright (c) 2013, Southwest Research Institute® (SwRI®)
 //
-// Contract No.  10-58058A
-// Contractor    Southwest Research Institute® (SwRI®)
-// Address       6220 Culebra Road, San Antonio, Texas 78228-0510
-// Contact       Steve Dellenback <sdellenback@swri.org> (210) 522-3914
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
+//       names of its contributors may be used to endorse or promote products
+//       derived from this software without specific prior written permission.
 //
-// This code was developed as part of an internal research project fully funded
-// by Southwest Research Institute®.
-//
-// THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
-// KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
 
 #include <mapviz_plugins/navsat_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
 
 // QT libraries
 #include <QDialog>
 #include <QOpenGLWidget>
 #include <QPalette>
-
-#include <opencv2/core/core.hpp>
-
-// ROS libraries
-#include <swri_transform_util/transform_util.h>
-
-// Declare plugin
-#include <pluginlib/class_list_macros.hpp>
 
 // C++ standard libraries
 #include <cstdio>
@@ -39,225 +39,229 @@
 #include <utility>
 #include <vector>
 
+#include <mapviz_plugins/topic_select.hpp>
+#include <opencv2/core/core.hpp>
+
+// ROS libraries
+#include "swri_transform_util/transform_util.h"
+
+// Declare plugin
+#include <pluginlib/class_list_macros.hpp>
+
 PLUGINLIB_EXPORT_CLASS(mapviz_plugins::NavSatPlugin, mapviz::MapvizPlugin)
 
 namespace mapviz_plugins
 {
-  NavSatPlugin::NavSatPlugin() :
-    PointDrawingPlugin(),
-    ui_(),
-    config_widget_(new QWidget()),
-    topic_(""),
-    qos_(rmw_qos_profile_default),
-    has_message_(false)
-  {
-    ui_.setupUi(config_widget_);
+NavSatPlugin::NavSatPlugin()
+: PointDrawingPlugin(),
+  ui_(),
+  config_widget_(new QWidget()),
+  topic_(""),
+  qos_(rmw_qos_profile_default),
+  has_message_(false)
+{
+  ui_.setupUi(config_widget_);
 
-    ui_.color->setColor(Qt::green);
+  ui_.color->setColor(Qt::green);
 
-    // Set background white
-    QPalette p(config_widget_->palette());
-    p.setColor(QPalette::Window, Qt::white);
-    config_widget_->setPalette(p);
+  // Set background white
+  QPalette p(config_widget_->palette());
+  p.setColor(QPalette::Window, Qt::white);
+  config_widget_->setPalette(p);
 
-    // Set status text red
-    QPalette p3(ui_.status->palette());
-    p3.setColor(QPalette::Text, Qt::red);
-    ui_.status->setPalette(p3);
+  // Set status text red
+  QPalette p3(ui_.status->palette());
+  p3.setColor(QPalette::Text, Qt::red);
+  ui_.status->setPalette(p3);
 
-    QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this,
-                     SLOT(SelectTopic()));
-    QObject::connect(ui_.topic, SIGNAL(editingFinished()), this,
-                     SLOT(TopicEdited()));
-    QObject::connect(ui_.positiontolerance, SIGNAL(valueChanged(double)), this,
-                     SLOT(PositionToleranceChanged(double)));
-    QObject::connect(ui_.buffersize, SIGNAL(valueChanged(int)), this,
-                     SLOT(BufferSizeChanged(int)));
-    QObject::connect(ui_.drawstyle, SIGNAL(activated(QString)), this,
-                     SLOT(SetDrawStyle(QString)));
-    QObject::connect(ui_.color, SIGNAL(colorEdited(const QColor&)), this,
-                     SLOT(SetColor(const QColor&)));
-    QObject::connect(ui_.buttonResetBuffer, SIGNAL(pressed()), this,
-                     SLOT(ClearPoints()));
+  QObject::connect(
+    ui_.selecttopic, SIGNAL(clicked()), this,
+    SLOT(SelectTopic()));
+  QObject::connect(
+    ui_.topic, SIGNAL(editingFinished()), this,
+    SLOT(TopicEdited()));
+  QObject::connect(
+    ui_.positiontolerance, SIGNAL(valueChanged(double)), this,
+    SLOT(PositionToleranceChanged(double)));
+  QObject::connect(
+    ui_.buffersize, SIGNAL(valueChanged(int)), this,
+    SLOT(BufferSizeChanged(int)));
+  QObject::connect(
+    ui_.drawstyle, SIGNAL(textActivated(QString)), this,
+    SLOT(SetDrawStyle(QString)));
+  QObject::connect(
+    ui_.color, SIGNAL(colorEdited(const QColor&)), this,
+    SLOT(SetColor(const QColor&)));
+  QObject::connect(
+    ui_.buttonResetBuffer, SIGNAL(pressed()), this,
+    SLOT(ClearPoints()));
+}
+
+void NavSatPlugin::SelectTopic()
+{
+  auto [topic, qos] = SelectTopicDialog::selectTopic(
+    TopicSource(),
+    "sensor_msgs/msg/NavSatFix",
+    qos_);
+
+  if (!topic.empty()) {
+    connectCallback(topic, qos);
+  }
+}
+
+void NavSatPlugin::TopicEdited()
+{
+  std::string topic = ui_.topic->text().trimmed().toStdString();
+  connectCallback(topic, qos_);
+}
+
+void NavSatPlugin::connectCallback(const std::string & topic, const rmw_qos_profile_t & qos)
+{
+  ui_.topic->setText(QString::fromStdString(topic));
+  if ((topic != topic_) || !qosEqual(qos, qos_)) {
+    initialized_ = false;
+    ClearPoints();
+    has_message_ = false;
+    PrintWarning("No messages received.");
+
+    navsat_sub_.reset();
+    topic_ = topic;
+    qos_ = qos;
+    if (!topic.empty()) {
+      // Subscribe() delivers each message to handleNavSatFix() on the GUI
+      // thread, where plugin state may be touched without locking.
+      Subscribe<sensor_msgs::msg::NavSatFix>(
+        topic_, qos, navsat_sub_,
+        [this](sensor_msgs::msg::NavSatFix::ConstSharedPtr msg) {handleNavSatFix(msg);});
+
+      RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
+    }
+  }
+}
+
+
+void NavSatPlugin::handleNavSatFix(const sensor_msgs::msg::NavSatFix::ConstSharedPtr navsat)
+{
+  if (!tf_manager_->LocalXyUtil()->Initialized()) {
+    PrintError("No origin initalized; dropping messages");
+    return;
+  }
+  if (!has_message_) {
+    initialized_ = true;
+    has_message_ = true;
   }
 
-  void NavSatPlugin::SelectTopic()
-  {
-    auto [topic, qos] = SelectTopicDialog::selectTopic(
-      TopicSource(),
-      "sensor_msgs/msg/NavSatFix",
-      qos_);
+  StampedPoint stamped_point;
+  stamped_point.stamp = navsat->header.stamp;
 
-    if (!topic.empty())
-    {
-      connectCallback(topic, qos);
+  double x;
+  double y;
+  tf_manager_->LocalXyUtil()->ToLocalXy(navsat->latitude, navsat->longitude, x, y);
+
+  stamped_point.point = tf2::Vector3(x, y, navsat->altitude);
+  stamped_point.orientation.setRPY(0, 0, 0);
+  stamped_point.source_frame = tf_manager_->LocalXyUtil()->Frame();
+
+  pushPoint(std::move(stamped_point) );
+}
+
+void NavSatPlugin::PrintError(const std::string & message)
+{
+  PrintErrorHelper(ui_.status, message);
+}
+
+void NavSatPlugin::PrintInfo(const std::string & message)
+{
+  PrintInfoHelper(ui_.status, message);
+}
+
+void NavSatPlugin::PrintWarning(const std::string & message)
+{
+  PrintWarningHelper(ui_.status, message);
+}
+
+QWidget * NavSatPlugin::GetConfigWidget(QWidget * parent)
+{
+  config_widget_->setParent(parent);
+
+  return config_widget_;
+}
+
+bool NavSatPlugin::Initialize(QOpenGLWidget * canvas)
+{
+  canvas_ = canvas;
+  canvas->makeCurrent();
+  initializeOpenGLFunctions();
+  canvas->doneCurrent();
+  SetColor(ui_.color->color());
+  return true;
+}
+
+void NavSatPlugin::Draw(double /*x*/, double /*y*/, double scale)
+{
+  if (DrawPoints(scale)) {
+    PrintInfo("OK");
+  }
+}
+
+void NavSatPlugin::LoadConfig(const YAML::Node & node, const std::string & /*path*/)
+{
+  LoadQosConfig(node, qos_);
+  if (node["topic"]) {
+    std::string topic = node["topic"].as<std::string>();
+    ui_.topic->setText(topic.c_str());
+  }
+
+  if (node["color"]) {
+    std::string color = node["color"].as<std::string>();
+    QColor qcolor(color.c_str());
+    SetColor(qcolor);
+    ui_.color->setColor(qcolor);
+  }
+
+  if (node["draw_style"]) {
+    std::string draw_style = node["draw_style"].as<std::string>();
+
+    if (draw_style == "lines") {
+      ui_.drawstyle->setCurrentIndex(0);
+      SetDrawStyle(LINES);
+    } else if (draw_style == "points") {
+      ui_.drawstyle->setCurrentIndex(1);
+      SetDrawStyle(POINTS);
     }
   }
 
-  void NavSatPlugin::TopicEdited()
-  {
-    std::string topic = ui_.topic->text().trimmed().toStdString();
-    connectCallback(topic, qos_);
+  if (node["position_tolerance"]) {
+    auto position_tolerance = node["position_tolerance"].as<double>();
+    ui_.positiontolerance->setValue(position_tolerance);
+    PositionToleranceChanged(position_tolerance);
   }
 
-  void NavSatPlugin::connectCallback(const std::string& topic, const rmw_qos_profile_t& qos)
-  {
-    ui_.topic->setText(QString::fromStdString(topic));
-    if ((topic != topic_) || !qosEqual(qos, qos_))
-    {
-      initialized_ = false;
-      ClearPoints();
-      has_message_ = false;
-      PrintWarning("No messages received.");
-
-      navsat_sub_.reset();
-      topic_ = topic;
-      qos_ = qos;
-      if (!topic.empty())
-      {
-        // Subscribe() delivers each message to handleNavSatFix() on the GUI
-        // thread, where plugin state may be touched without locking.
-        Subscribe<sensor_msgs::msg::NavSatFix>(
-          topic_, qos, navsat_sub_,
-          [this](sensor_msgs::msg::NavSatFix::ConstSharedPtr msg) { handleNavSatFix(msg); });
-
-        RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
-      }
-    }
+  if (node["buffer_size"]) {
+    auto buffer_size = node["buffer_size"].as<int>();
+    ui_.buffersize->setValue(buffer_size);
+    BufferSizeChanged(buffer_size);
   }
 
+  TopicEdited();
+}
 
-  void NavSatPlugin::handleNavSatFix(const sensor_msgs::msg::NavSatFix::ConstSharedPtr navsat)
-  {
-    if (!tf_manager_->LocalXyUtil()->Initialized())
-    {
-      PrintError("No origin initalized; dropping messages");
-      return;
-    }
-    if (!has_message_)
-    {
-      initialized_ = true;
-      has_message_ = true;
-    }
+void NavSatPlugin::SaveConfig(YAML::Emitter & emitter, const std::string & /*path*/)
+{
+  std::string topic = ui_.topic->text().toStdString();
+  emitter << YAML::Key << "topic" << YAML::Value << topic;
 
-    StampedPoint stamped_point;
-    stamped_point.stamp = navsat->header.stamp;
+  std::string color = ui_.color->color().name().toStdString();
+  emitter << YAML::Key << "color" << YAML::Value << color;
 
-    double x;
-    double y;
-    tf_manager_->LocalXyUtil()->ToLocalXy(navsat->latitude, navsat->longitude, x, y);
+  std::string draw_style = ui_.drawstyle->currentText().toStdString();
+  emitter << YAML::Key << "draw_style" << YAML::Value << draw_style;
 
-    stamped_point.point = tf2::Vector3(x, y, navsat->altitude);
-    stamped_point.orientation.setRPY(0, 0, 0);
-    stamped_point.source_frame = tf_manager_->LocalXyUtil()->Frame();
+  emitter << YAML::Key << "position_tolerance" <<
+    YAML::Value << positionTolerance();
 
-    pushPoint( std::move(stamped_point) );
-  }
+  emitter << YAML::Key << "buffer_size" << YAML::Value << bufferSize();
 
-  void NavSatPlugin::PrintError(const std::string& message)
-  {
-    PrintErrorHelper(ui_.status, message);
-  }
-
-  void NavSatPlugin::PrintInfo(const std::string& message)
-  {
-    PrintInfoHelper(ui_.status, message);
-  }
-
-  void NavSatPlugin::PrintWarning(const std::string& message)
-  {
-    PrintWarningHelper(ui_.status, message);
-  }
-
-  QWidget* NavSatPlugin::GetConfigWidget(QWidget* parent)
-  {
-    config_widget_->setParent(parent);
-
-    return config_widget_;
-  }
-
-  bool NavSatPlugin::Initialize(QOpenGLWidget* canvas)
-  {
-    canvas_ = canvas;
-    canvas->makeCurrent();
-    initializeOpenGLFunctions();
-    canvas->doneCurrent();
-    SetColor(ui_.color->color());
-    return true;
-  }
-
-  void NavSatPlugin::Draw(double /*x*/, double /*y*/, double scale)
-  {
-    if (DrawPoints(scale))
-    {
-      PrintInfo("OK");
-    }
-  }
-
-  void NavSatPlugin::LoadConfig(const YAML::Node& node, const std::string& /*path*/)
-  {
-    LoadQosConfig(node, qos_);
-    if (node["topic"])
-    {
-      std::string topic = node["topic"].as<std::string>();
-      ui_.topic->setText(topic.c_str());
-    }
-
-    if (node["color"])
-    {
-      std::string color = node["color"].as<std::string>();
-      QColor qcolor(color.c_str());
-      SetColor(qcolor);
-      ui_.color->setColor(qcolor);
-    }
-
-    if (node["draw_style"])
-    {
-      std::string draw_style = node["draw_style"].as<std::string>();
-
-      if (draw_style == "lines")
-      {
-        ui_.drawstyle->setCurrentIndex(0);
-        SetDrawStyle( LINES );
-      } else if (draw_style == "points") {
-        ui_.drawstyle->setCurrentIndex(1);
-        SetDrawStyle( POINTS );
-      }
-    }
-
-    if (node["position_tolerance"])
-    {
-      auto position_tolerance = node["position_tolerance"].as<double>();
-      ui_.positiontolerance->setValue(position_tolerance);
-      PositionToleranceChanged(position_tolerance);
-    }
-
-    if (node["buffer_size"])
-    {
-      auto buffer_size = node["buffer_size"].as<int>();
-      ui_.buffersize->setValue(buffer_size);
-      BufferSizeChanged(buffer_size);
-    }
-
-    TopicEdited();
-  }
-
-  void NavSatPlugin::SaveConfig(YAML::Emitter& emitter, const std::string& /*path*/)
-  {
-    std::string topic = ui_.topic->text().toStdString();
-    emitter << YAML::Key << "topic" << YAML::Value << topic;
-
-    std::string color = ui_.color->color().name().toStdString();
-    emitter << YAML::Key << "color" << YAML::Value << color;
-
-    std::string draw_style = ui_.drawstyle->currentText().toStdString();
-    emitter << YAML::Key << "draw_style" << YAML::Value << draw_style;
-
-    emitter << YAML::Key << "position_tolerance" <<
-               YAML::Value << positionTolerance();
-
-    emitter << YAML::Key << "buffer_size" << YAML::Value << bufferSize();
-
-    SaveQosConfig(emitter, qos_);
-  }
+  SaveQosConfig(emitter, qos_);
+}
 }   // namespace mapviz_plugins
