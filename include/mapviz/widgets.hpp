@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2014, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -27,8 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ_WIDGETS_HPP_
-#define MAPVIZ_WIDGETS_HPP_
+#ifndef MAPVIZ__WIDGETS_HPP_
+#define MAPVIZ__WIDGETS_HPP_
 
 // QT libraries
 #include <QWidget>
@@ -47,7 +46,8 @@ class PluginConfigList : public QListWidget
   Q_OBJECT
 
 public:
-  explicit PluginConfigList(QWidget *parent = nullptr) : QListWidget(parent) {}
+  explicit PluginConfigList(QWidget * parent = nullptr)
+  : QListWidget(parent) {}
   PluginConfigList() = default;
 
   void UpdateIndices()
@@ -61,7 +61,7 @@ Q_SIGNALS:
   void ItemsMoved();
 
 protected:
-  void dropEvent(QDropEvent* event) override
+  void dropEvent(QDropEvent * event) override
   {
     QListWidget::dropEvent(event);
 
@@ -74,9 +74,10 @@ protected:
 class PluginConfigListItem : public QListWidgetItem
 {
 public:
-  explicit PluginConfigListItem(QListWidget *parent = nullptr) : QListWidgetItem(parent) {}
+  explicit PluginConfigListItem(QListWidget * parent = nullptr)
+  : QListWidgetItem(parent) {}
 
-  bool operator< (const QListWidgetItem & other) const override
+  bool operator<(const QListWidgetItem & other) const override
   {
     return data(Qt::UserRole).toFloat() < other.data(Qt::UserRole).toFloat();
   }
@@ -87,8 +88,8 @@ class SingleClickLabel : public QLabel
   Q_OBJECT
 
 public:
-  explicit SingleClickLabel(QWidget *parent = 0, Qt::WindowFlags flags = Qt::WindowFlags()) :
-    QLabel(parent, flags) {}
+  explicit SingleClickLabel(QWidget * parent = 0, Qt::WindowFlags flags = Qt::WindowFlags())
+  : QLabel(parent, flags) {}
 
   ~SingleClickLabel() override = default;
 
@@ -96,7 +97,7 @@ Q_SIGNALS:
   void Clicked();
 
 protected:
-  void mousePressEvent(QMouseEvent*) override
+  void mousePressEvent(QMouseEvent *) override
   {
     Q_EMIT Clicked();
   }
@@ -107,8 +108,8 @@ class DoubleClickWidget : public QWidget
   Q_OBJECT
 
 public:
-  explicit DoubleClickWidget(QWidget *parent = 0, Qt::WindowFlags flags = Qt::WindowFlags()) :
-    QWidget(parent, flags) {}
+  explicit DoubleClickWidget(QWidget * parent = 0, Qt::WindowFlags flags = Qt::WindowFlags())
+  : QWidget(parent, flags) {}
 
   ~DoubleClickWidget() override = default;
 
@@ -117,14 +118,14 @@ Q_SIGNALS:
   void RightClicked();
 
 protected:
-  void mouseDoubleClickEvent(QMouseEvent* event) override
+  void mouseDoubleClickEvent(QMouseEvent * event) override
   {
     if (event->button() == Qt::LeftButton) {
       Q_EMIT DoubleClicked();
     }
   }
 
-  void mouseReleaseEvent(QMouseEvent* event) override
+  void mouseReleaseEvent(QMouseEvent * event) override
   {
     if (event->button() == Qt::RightButton) {
       Q_EMIT RightClicked();
@@ -137,8 +138,8 @@ class IconWidget : public QWidget
   Q_OBJECT
 
 public:
-  explicit IconWidget(QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags()) :
-    QWidget(parent, flags)
+  explicit IconWidget(QWidget * parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags())
+  : QWidget(parent, flags)
   {
     pixmap_ = QPixmap(16, 16);
     pixmap_.fill(Qt::transparent);
@@ -153,7 +154,7 @@ public:
   }
 
 protected:
-  void paintEvent(QPaintEvent*) override
+  void paintEvent(QPaintEvent *) override
   {
     QPainter painter(this);
     painter.fillRect(0, 0, width(), height(), palette().color(QPalette::Button));
