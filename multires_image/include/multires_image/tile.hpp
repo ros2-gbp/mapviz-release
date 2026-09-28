@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2014, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -27,12 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_TILE_HPP_
-#define MULTIRES_IMAGE_TILE_HPP_
-
-// C++ standard libraries
-#include <memory>
-#include <string>
+#ifndef MULTIRES_IMAGE__TILE_HPP_
+#define MULTIRES_IMAGE__TILE_HPP_
 
 // QT libraries
 #include <QImage>
@@ -40,69 +35,74 @@
 #include <QOpenGLFunctions_1_1>
 #include <QOpenGLTexture>
 
-#include <tf2/transform_datatypes.hpp>
+// C++ standard libraries
+#include <memory>
+#include <string>
 
-#include <swri_transform_util/transform.h>
+#include <tf2/transform_datatypes.hpp>
+#include "swri_transform_util/transform.h"
 
 namespace multires_image
 {
-  class Tile : protected QOpenGLFunctions_1_1
-  {
-  public:
-    Tile(
-      const std::string& path, int column, int row, int level,
-      const tf2::Vector3& topLeft,
-      const tf2::Vector3& topRight,
-      const tf2::Vector3& bottomLeft,
-      const tf2::Vector3& bottomRight);
-    ~Tile() = default;
+class Tile : protected QOpenGLFunctions_1_1
+{
+public:
+  Tile(
+    const std::string & path, int column, int row, int level,
+    const tf2::Vector3 & topLeft,
+    const tf2::Vector3 & topRight,
+    const tf2::Vector3 & bottomLeft,
+    const tf2::Vector3 & bottomRight);
+  ~Tile() = default;
 
-    bool Exists();
-    bool Failed() const { return m_failed; }
-    bool TextureLoaded() const { return m_textureLoaded; }
-    const QImage& Image() const { return m_image; }
-    int64_t TileID() const { return m_tileId; }
-    int Layer() const { return m_level; }
-    int MemorySize() const { return m_memorySize; }
-    int Row() const { return m_row; }
-    int Column() const { return m_column; }
+  bool Exists();
+  bool Failed() const {return m_failed;}
+  bool TextureLoaded() const {return m_textureLoaded;}
+  const QImage & Image() const {return m_image;}
+  int64_t TileID() const {return m_tileId;}
+  int Layer() const {return m_level;}
+  int MemorySize() const {return m_memorySize;}
+  int Row() const {return m_row;}
+  int Column() const {return m_column;}
 
-    bool LoadImageToMemory(bool gl = true);
-    void UnloadImage();
+  bool LoadImageToMemory(bool gl = true);
+  void UnloadImage();
 
-    bool LoadTexture();
-    void UnloadTexture();
+  bool LoadTexture();
+  void UnloadTexture();
 
-    void Draw();
+  void Draw();
 
-    void Transform(const swri_transform_util::Transform& transform);
-    void Transform(const swri_transform_util::Transform& transform, const swri_transform_util::Transform& offset_tf);
+  void Transform(const swri_transform_util::Transform & transform);
+  void Transform(
+    const swri_transform_util::Transform & transform,
+    const swri_transform_util::Transform & offset_tf);
 
-  private:
-    const std::string   m_path;
-    const int           m_column;
-    const int           m_row;
-    const int           m_level;
+private:
+  const std::string m_path;
+  const int m_column;
+  const int m_row;
+  const int m_level;
 
-    tf2::Vector3           m_top_left;
-    tf2::Vector3           m_top_right;
-    tf2::Vector3           m_bottom_right;
-    tf2::Vector3           m_bottom_left;
+  tf2::Vector3 m_top_left;
+  tf2::Vector3 m_top_right;
+  tf2::Vector3 m_bottom_right;
+  tf2::Vector3 m_bottom_left;
 
-    tf2::Vector3           m_transformed_top_left;
-    tf2::Vector3           m_transformed_top_right;
-    tf2::Vector3           m_transformed_bottom_right;
-    tf2::Vector3           m_transformed_bottom_left;
+  tf2::Vector3 m_transformed_top_left;
+  tf2::Vector3 m_transformed_top_right;
+  tf2::Vector3 m_transformed_bottom_right;
+  tf2::Vector3 m_transformed_bottom_left;
 
-    bool                m_failed;
-    bool                m_textureLoaded;
-    int                 m_dimension;
-    int64_t             m_tileId;
-    int                 m_memorySize;
-    QImage              m_image;
-    QMutex              m_mutex;
-    std::unique_ptr<QOpenGLTexture> m_texture;
-  };
-}
+  bool m_failed;
+  bool m_textureLoaded;
+  int m_dimension;
+  int64_t m_tileId;
+  int m_memorySize;
+  QImage m_image;
+  QMutex m_mutex;
+  std::unique_ptr<QOpenGLTexture> m_texture;
+};
+}  // namespace multires_image
 
-#endif  // MULTIRES_IMAGE_TILE_HPP_
+#endif  // MULTIRES_IMAGE__TILE_HPP_
