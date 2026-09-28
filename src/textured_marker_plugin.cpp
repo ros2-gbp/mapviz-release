@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2014-2020, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -28,18 +27,10 @@
 // *****************************************************************************
 
 #include <mapviz_plugins/textured_marker_plugin.hpp>
-#include <mapviz_plugins/topic_select.hpp>
 
 // QT libraries
 #include <QDialog>
 #include <QOpenGLWidget>
-
-// ROS libraries
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/image_encodings.hpp>
-
-// Declare plugin
-#include <pluginlib/class_list_macros.hpp>
 
 // C++ standard libraries
 #include <algorithm>
@@ -50,14 +41,23 @@
 #include <string>
 #include <vector>
 
+#include <mapviz_plugins/topic_select.hpp>
+
+// ROS libraries
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/image_encodings.hpp>
+
+// Declare plugin
+#include <pluginlib/class_list_macros.hpp>
+
 using namespace std::chrono_literals;
 
 PLUGINLIB_EXPORT_CLASS(mapviz_plugins::TexturedMarkerPlugin, mapviz::MapvizPlugin)
 
 namespace mapviz_plugins
 {
-TexturedMarkerPlugin::TexturedMarkerPlugin() :
-  MapvizPlugin(),
+TexturedMarkerPlugin::TexturedMarkerPlugin()
+: MapvizPlugin(),
   alphaVal_(1.0f),
   ui_(),
   config_widget_(new QWidget()),
@@ -130,7 +130,7 @@ void TexturedMarkerPlugin::TopicEdited()
   connectCallback(topic, qos_);
 }
 
-void TexturedMarkerPlugin::connectCallback(const std::string& topic, const rmw_qos_profile_t& qos)
+void TexturedMarkerPlugin::connectCallback(const std::string & topic, const rmw_qos_profile_t & qos)
 {
   ui_.topic->setText(QString::fromStdString(topic));
 
@@ -162,28 +162,26 @@ void TexturedMarkerPlugin::connectCallback(const std::string& topic, const rmw_q
               }
             });
           RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
-        }
-        else if(topic_type == "marti_visualization_msgs/msg/TexturedMarker") {
+        } else if (topic_type == "marti_visualization_msgs/msg/TexturedMarker") {
           Subscribe<marti_visualization_msgs::msg::TexturedMarker>(
             topic_, qos, marker_sub_,
             [this](marti_visualization_msgs::msg::TexturedMarker::ConstSharedPtr marker) {
               ProcessMarker(*marker);
             });
           RCLCPP_INFO(Logger(), "Subscribing to %s", topic_.c_str());
+        } else {
+          RCLCPP_ERROR(
+            Logger(),
+            "Unable to subscribe to topic %s (unsupported type %s).",
+            topic_.c_str(), topic_type.c_str());
         }
-        else {
-          RCLCPP_ERROR(Logger(),
-              "Unable to subscribe to topic %s (unsupported type %s).",
-              topic_.c_str(), topic_type.c_str());
-        }
-      }
-      else {
-        RCLCPP_ERROR(Logger(),
-            "Unable to subscribe to topic %s, (does not exist).", topic_.c_str());
+      } else {
+        RCLCPP_ERROR(
+          Logger(),
+          "Unable to subscribe to topic %s, (does not exist).", topic_.c_str());
       }
     }
   }
-
 }
 
 void TexturedMarkerPlugin::ProcessMarker(const marti_visualization_msgs::msg::TexturedMarker marker)
@@ -292,15 +290,18 @@ void TexturedMarkerPlugin::ProcessMarker(const marti_visualization_msgs::msg::Te
       size_t bpp = 0;
       if (markerData.encoding_ == sensor_msgs::image_encodings::BGRA8) {
         bpp = 4;
-        markerData.texture_.resize(static_cast<size_t>(markerData.texture_size_ *
+        markerData.texture_.resize(
+          static_cast<size_t>(markerData.texture_size_ *
           markerData.texture_size_ * 4));
       } else if (markerData.encoding_ == sensor_msgs::image_encodings::BGR8) {
         bpp = 3;
-        markerData.texture_.resize(static_cast<size_t>(markerData.texture_size_ *
+        markerData.texture_.resize(
+          static_cast<size_t>(markerData.texture_size_ *
           markerData.texture_size_ * 3));
       } else if (markerData.encoding_ == sensor_msgs::image_encodings::MONO8) {
         bpp = 1;
-        markerData.texture_.resize(static_cast<size_t>(markerData.texture_size_ *
+        markerData.texture_.resize(
+          static_cast<size_t>(markerData.texture_size_ *
           markerData.texture_size_));
       } else {
         RCLCPP_WARN(Logger(), "Unsupported encoding: %s", markerData.encoding_.c_str());
