@@ -68,7 +68,11 @@ find_package(marti_common_msgs REQUIRED)
 find_package(marti_nav_msgs REQUIRED)
 find_package(marti_sensor_msgs REQUIRED)
 find_package(marti_visualization_msgs REQUIRED)
-find_package(nav2_msgs REQUIRED)
+# Optional: nav2_msgs is not released for every distro (see package.xml).
+find_package(nav2_msgs QUIET)
+if(NOT nav2_msgs_FOUND)
+  message(STATUS "nav2_msgs not found; the move_base plugin will not be built")
+endif()
 find_package(nav_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -155,7 +159,6 @@ set(UI_FILES
   ui/string_config.ui
   ui/textured_marker_config.ui
   ui/robot_model_config.ui
-  ui/move_base_config.ui
   ui/tf_frame_config.ui
   ui/topicselect.ui)
 
@@ -173,7 +176,6 @@ set(SRC_FILES
   src/laserscan_plugin.cpp
   src/marker_plugin.cpp
   src/measuring_plugin.cpp
-  src/move_base_plugin.cpp
   src/navsat_plugin.cpp
   src/occupancy_grid_plugin.cpp
   src/odometry_plugin.cpp
@@ -191,7 +193,8 @@ set(SRC_FILES
   src/string_plugin.cpp
   src/textured_marker_plugin.cpp
   src/tf_frame_plugin.cpp
-  src/topic_select.cpp)
+  src/topic_select.cpp
+  src/topic_type_watcher.cpp)
 
 set(HEADER_FILES
   include/${PROJECT_NAME}/attitude_indicator_plugin.hpp
@@ -207,7 +210,6 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/laserscan_plugin.hpp
   include/${PROJECT_NAME}/marker_plugin.hpp
   include/${PROJECT_NAME}/measuring_plugin.hpp
-  include/${PROJECT_NAME}/move_base_plugin.hpp
   include/${PROJECT_NAME}/navsat_plugin.hpp
   include/${PROJECT_NAME}/occupancy_grid_plugin.hpp
   include/${PROJECT_NAME}/odometry_plugin.hpp
@@ -225,7 +227,8 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/string_plugin.hpp
   include/${PROJECT_NAME}/textured_marker_plugin.hpp
   include/${PROJECT_NAME}/tf_frame_plugin.hpp
-  include/${PROJECT_NAME}/topic_select.hpp)
+  include/${PROJECT_NAME}/topic_select.hpp
+  include/${PROJECT_NAME}/topic_type_watcher.hpp)
 
 set(MAPVIZ_PLUGINS_QT_LIBRARIES
   Qt${QT_VERSION_MAJOR}::Core
@@ -252,6 +255,12 @@ add_library(${PROJECT_NAME} SHARED
     ${SRC_FILES}
     ${UI_FILES}
 )
+if(nav2_msgs_FOUND)
+  target_sources(${PROJECT_NAME} PRIVATE
+    include/${PROJECT_NAME}/move_base_plugin.hpp
+    src/move_base_plugin.cpp
+    ui/move_base_config.ui)
+endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
   AUTOMOC ON
   AUTOUIC ON
@@ -270,9 +279,11 @@ target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     WFlags=WindowFlags)
 
-# cv_bridge 3.5.0 (ROS 2 Iron) started transitioning some files from .h to .hpp extensions
-if (cv_bridge_VERSION VERSION_LESS "3.5.0")
-  target_compile_definitions(${PROJECT_NAME} PRIVATE USE_CVBRIDGE_H_FILES)
+# cv_bridge 3.5.0 (ROS 2 Iron) started transitioning some files from .h to .hpp extensions.
+# Public because image_plugin.hpp and disparity_plugin.hpp choose their include
+# with it, so anything including them (such as the tests) needs it too.
+if(cv_bridge_VERSION VERSION_LESS "3.5.0")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_CVBRIDGE_H_FILES)
 endif()
 
 if(MAPVIZ_PLUGINS_IMAGE_TRANSPORT_TAKES_NODE_REF)
@@ -296,7 +307,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${marti_nav_msgs_TARGETS}
     ${marti_sensor_msgs_TARGETS}
     ${marti_visualization_msgs_TARGETS}
-    ${nav2_msgs_TARGETS}
     ${nav_msgs_TARGETS}
     opencv_core
     ${MAPVIZ_PLUGINS_QT_LIBRARIES}
@@ -309,6 +319,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${swri_transform_util_TARGETS}
     tf2::tf2
     ${visualization_msgs_TARGETS})
+
+if(nav2_msgs_FOUND)
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${nav2_msgs_TARGETS})
+endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ament_index_cpp::ament_index_cpp
@@ -323,9 +337,16 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${urdf_TARGETS})
 
 ### Install the plugins ###
-install(DIRECTORY include/
-  DESTINATION include/${PROJECT_NAME}
-  FILES_MATCHING PATTERN "*.hpp")
+if(nav2_msgs_FOUND)
+  install(DIRECTORY include/
+    DESTINATION include/${PROJECT_NAME}
+    FILES_MATCHING PATTERN "*.hpp")
+else()
+  install(DIRECTORY include/
+    DESTINATION include/${PROJECT_NAME}
+    FILES_MATCHING PATTERN "*.hpp"
+    PATTERN "move_base_plugin.hpp" EXCLUDE)
+endif()
 
 install(DIRECTORY ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR}/
   DESTINATION include/${PROJECT_NAME}
@@ -338,9 +359,14 @@ install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib)
 
 pluginlib_export_plugin_description_file(mapviz mapviz_plugins.xml)
-pluginlib_export_plugin_description_file(mapviz move_base_plugin.xml)
+if(nav2_msgs_FOUND)
+  pluginlib_export_plugin_description_file(mapviz move_base_plugin.xml)
+endif()
 
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_gtest REQUIRED)
 
   # The plugins build Qt widgets in their constructors, so the test needs a
@@ -354,6 +380,38 @@ if(BUILD_TESTING)
     # the library target's autogen directory rather than on its usage
     # requirements.
     target_include_directories(test_plugin_config
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_plan_route test/test_plan_route.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plan_route)
+    target_link_libraries(test_plan_route ${PROJECT_NAME})
+    target_include_directories(test_plan_route
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_plugin_round_trip test/test_plugin_round_trip.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plugin_round_trip)
+    target_link_libraries(test_plugin_round_trip ${PROJECT_NAME})
+    target_include_directories(test_plugin_round_trip
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_plugin_signals test/test_plugin_signals.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plugin_signals)
+    target_link_libraries(test_plugin_signals ${PROJECT_NAME})
+    target_include_directories(test_plugin_signals
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_malformed_messages test/test_malformed_messages.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_malformed_messages)
+    target_link_libraries(test_malformed_messages ${PROJECT_NAME})
+    target_include_directories(test_malformed_messages
       PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
   endif()
 endif()
@@ -371,7 +429,6 @@ ament_export_dependencies(
   marti_sensor_msgs
   marti_visualization_msgs
   nav_msgs
-  nav2_msgs
   ${MAPVIZ_PLUGINS_QT_EXPORT_DEPENDENCIES}
   rclcpp
   rclcpp_action
@@ -382,4 +439,7 @@ ament_export_dependencies(
   swri_transform_util
   tf2
   visualization_msgs)
+if(nav2_msgs_FOUND)
+  ament_export_dependencies(nav2_msgs)
+endif()
 ament_package(CONFIG_EXTRAS cmake/mapviz_plugins-extras.cmake)
