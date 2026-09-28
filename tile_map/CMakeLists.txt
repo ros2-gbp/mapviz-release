@@ -126,7 +126,7 @@ target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
-    
+
 target_link_libraries(${PROJECT_NAME} PUBLIC
   ${TILE_MAP_QT_LIBRARIES}
   rclcpp::rclcpp
@@ -135,6 +135,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PRIVATE
   jsoncpp_lib
   ${swri_math_util_TARGETS})
+
+# swri_transform_util 3.10.0 added Transform::operator==, which TileMapView
+# uses to skip reprojecting tiles when the transform has not changed.
+if(swri_transform_util_VERSION VERSION_GREATER_EQUAL "3.10.0")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE TILE_MAP_HAVE_TRANSFORM_EQUALITY)
+endif()
 
 set(PLUGIN_SRC_FILES
   src/${PROJECT_NAME}_plugin.cpp)
@@ -171,12 +177,31 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_plugin
 pluginlib_export_plugin_description_file(mapviz mapviz_plugins.xml)
 
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_gtest REQUIRED)
 
   ament_add_gtest(test_${PROJECT_NAME}_view test/test_${PROJECT_NAME}_view.cpp)
   if(TARGET test_${PROJECT_NAME}_view)
     # ament_add_gtest() already used the plain signature on this target.
     target_link_libraries(test_${PROJECT_NAME}_view ${PROJECT_NAME})
+  endif()
+
+  ament_add_gtest(test_${PROJECT_NAME}_sources test/test_tile_sources.cpp)
+  if(TARGET test_${PROJECT_NAME}_sources)
+    target_link_libraries(test_${PROJECT_NAME}_sources ${PROJECT_NAME})
+  endif()
+
+  # The plugin builds Qt widgets in its constructor, so the test needs a
+  # platform plugin that works without a display.
+  ament_add_gtest(test_${PROJECT_NAME}_plugin test/test_${PROJECT_NAME}_plugin.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_${PROJECT_NAME}_plugin)
+    target_link_libraries(test_${PROJECT_NAME}_plugin ${PROJECT_NAME}_plugin)
+    # tile_map_plugin.hpp includes the plugin's AUTOUIC generated header.
+    target_include_directories(test_${PROJECT_NAME}_plugin
+      PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_plugin_autogen/include)
   endif()
 endif()
 
