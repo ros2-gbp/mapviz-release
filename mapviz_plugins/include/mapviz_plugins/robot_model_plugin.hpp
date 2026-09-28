@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2026, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -30,19 +29,12 @@
 #ifndef MAPVIZ_PLUGINS__ROBOT_MODEL_PLUGIN_HPP_
 #define MAPVIZ_PLUGINS__ROBOT_MODEL_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.hpp>
-
 #include <QColor>
 #include <QObject>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOffscreenSurface>
 #include <QWidget>
-
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/string.hpp>
-#include <tf2/LinearMath/Transform.hpp>
-#include <tf2/LinearMath/Vector3.hpp>
 
 #include <array>
 #include <atomic>
@@ -54,28 +46,38 @@
 #include <utility>
 #include <vector>
 
-#include "ui_robot_model_config.h"
+#include <mapviz/mapviz_plugin.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <tf2/LinearMath/Transform.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include "ui_robot_model_config.h"  // NOLINT(build/include_subdir)
 
-namespace mapviz_plugins {
+namespace mapviz_plugins
+{
 
-class RobotModelPlugin : public mapviz::MapvizPlugin {
+class RobotModelPlugin : public mapviz::MapvizPlugin
+{
   Q_OBJECT
 
- public:
+public:
   // Holds a diffuse texture image plus its lazy-uploaded GL texture ID.
   // Shared via shared_ptr so the GL ID persists across Transform() rebuilds.
-  struct TextureData {
+  struct TextureData
+  {
     std::vector<uint8_t> rgb_data;  // RGB8, row-major, top-row first
     int width{0};
     int height{0};
     mutable uint32_t gl_id{0};  // 0 = not yet uploaded
   };
 
-  struct LinkGeometry {
-    struct MeshFace {
+  struct LinkGeometry
+  {
+    struct MeshFace
+    {
       std::array<tf2::Vector3, 3> verts;       // root_link frame
       std::array<float, 3> brightness;         // per-vertex Lambert [0,1]
-      std::array<std::array<float, 2>, 3> uvs; // per-vertex UV (u, v); v=0 is image top
+      std::array<std::array<float, 2>, 3> uvs;  // per-vertex UV (u, v); v=0 is image top
       bool use_texture{false};
       QColor color;  // flat color when !use_texture; tint when use_texture
     };
@@ -92,24 +94,24 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
   RobotModelPlugin();
   ~RobotModelPlugin() override = default;
 
-  bool Initialize(QOpenGLWidget* canvas) override;
+  bool Initialize(QOpenGLWidget * canvas) override;
   void Shutdown() override;
-  QWidget* GetConfigWidget(QWidget* parent) override;
+  QWidget * GetConfigWidget(QWidget * parent) override;
 
- protected:
+protected:
   void Draw(double x, double y, double scale) override;
 
   void Transform() override;
 
-  void LoadConfig(const YAML::Node& node, const std::string& path) override;
+  void LoadConfig(const YAML::Node & node, const std::string & path) override;
 
-  void SaveConfig(YAML::Emitter& emitter, const std::string& path) override;
+  void SaveConfig(YAML::Emitter & emitter, const std::string & path) override;
 
-  void PrintError(const std::string& message) override;
-  void PrintInfo(const std::string& message) override;
-  void PrintWarning(const std::string& message) override;
+  void PrintError(const std::string & message) override;
+  void PrintInfo(const std::string & message) override;
+  void PrintWarning(const std::string & message) override;
 
- protected Q_SLOTS:
+protected Q_SLOTS:
   void SelectTopic();
   void TopicEdited();
   void DrawIcon();
@@ -117,8 +119,9 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
   void BrowseFile();
   void FileEdited();
 
- private:
-  struct BakeResult {
+private:
+  struct BakeResult
+  {
     GLuint texture{0};
     double bbox_min_x{0}, bbox_max_x{0};
     double bbox_min_y{0}, bbox_max_y{0};
@@ -130,12 +133,13 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
 
   // Called on the GUI thread by Subscribe(); owns all plugin state.
   void handleDescription(const std_msgs::msg::String::ConstSharedPtr description);
-  void parseUrdf(const std::string& xml);
-  void rebakeRaster(const std::vector<LinkGeometry>& geoms, double scale,
-                    int canvas_max_dim, bool off_screen);
+  void parseUrdf(const std::string & xml);
+  void rebakeRaster(
+    const std::vector<LinkGeometry> & geoms, double scale,
+    int canvas_max_dim, bool off_screen);
 
   Ui::robot_model_config ui_;
-  QWidget* config_widget_;
+  QWidget * config_widget_;
 
   std::string topic_;
   std::string file_path_;
@@ -164,8 +168,8 @@ class RobotModelPlugin : public mapviz::MapvizPlugin {
   std::atomic<bool> urdf_dirty_{true};
   std::thread bake_thread_;
 
-  QOpenGLContext* main_gl_context_{nullptr};
-  QOffscreenSurface* offscreen_surface_{nullptr};
+  QOpenGLContext * main_gl_context_{nullptr};
+  QOffscreenSurface * offscreen_surface_{nullptr};
 };
 
 }  // namespace mapviz_plugins

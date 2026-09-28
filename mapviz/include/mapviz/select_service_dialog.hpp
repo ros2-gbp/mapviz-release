@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2015, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,28 +9,25 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL Southwest Research Institute® BE LIABLE
-// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-// SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
-// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-// DAMAGE.
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *****************************************************************************
 
 #ifndef MAPVIZ__SELECT_SERVICE_DIALOG_HPP_
 #define MAPVIZ__SELECT_SERVICE_DIALOG_HPP_
-
-#include <mapviz/topic_source.hpp>
 
 #include <QDialog>
 #include <QMetaType>
@@ -41,7 +37,10 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include <mapviz/topic_source.hpp>
 
 QT_BEGIN_NAMESPACE
 class QLineEdit;
@@ -63,12 +62,13 @@ namespace mapviz
 class ServiceUpdaterThread : public QThread
 {
   Q_OBJECT
+
 public:
   ServiceUpdaterThread(
     std::function<TopicSource::NamesAndTypes()> services,
-    const std::string& allowed_datatype,
-    QObject* parent) :
-    QThread(parent),
+    const std::string & allowed_datatype,
+    QObject * parent)
+  : QThread(parent),
     services_(std::move(services)),
     allowed_datatype_(allowed_datatype)
   {
@@ -81,7 +81,7 @@ Q_SIGNALS:
 
 private:
   std::function<TopicSource::NamesAndTypes()> services_;
-  const std::string& allowed_datatype_;
+  const std::string & allowed_datatype_;
 };
 
 /**
@@ -91,6 +91,7 @@ private:
 class SelectServiceDialog : public QDialog
 {
   Q_OBJECT
+
 public:
   /**
    * Convenience function for creating a dialog that will prompt the user to select
@@ -103,7 +104,7 @@ public:
    * @return The name of the selected service, or an empty string if there was none.
    */
   static std::string selectService(
-    const TopicSource& source, const std::string& datatype, QWidget* parent = 0);
+    const TopicSource & source, const std::string & datatype, QWidget * parent = 0);
 
   /**
    * Constructs a new SelectServiceDialog and automatically starts a timer that
@@ -112,9 +113,10 @@ public:
    *                     the user a list of all services.
    * @param[in] parent The dialog's parent widget.
    */
-  explicit SelectServiceDialog(const TopicSource& source,
-      const std::string& datatype = "",
-      QWidget* parent = nullptr);
+  explicit SelectServiceDialog(
+    const TopicSource & source,
+    const std::string & datatype = "",
+    QWidget * parent = nullptr);
   ~SelectServiceDialog() override;
 
   /**
@@ -123,7 +125,7 @@ public:
    * all available topics.
    * @param[in] datatype The type of service to search for.
    */
-  void setDatatypeFilter(const std::string& datatype);
+  void setDatatypeFilter(const std::string & datatype);
 
   /**
    * Gets the service the user had selected, or an empty string if there was
@@ -151,7 +153,7 @@ private Q_SLOTS:
    * Displays a message box indicating that there was an error and stops our
    * update timer.
    */
-  void displayUpdateError(const QString&);
+  void displayUpdateError(const QString &);
 
 private:
   std::vector<std::string> filterServices();
@@ -166,10 +168,10 @@ private:
 
   int fetch_services_timer_id_;
 
-  QPushButton *cancel_button_;
-  QListWidget *list_widget_;
-  QLineEdit *name_filter_;
-  QPushButton *ok_button_;
+  QPushButton * cancel_button_;
+  QListWidget * list_widget_;
+  QLineEdit * name_filter_;
+  QPushButton * ok_button_;
   std::shared_ptr<ServiceUpdaterThread> worker_thread_;
 };
 }   //  namespace mapviz
