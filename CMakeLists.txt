@@ -152,6 +152,7 @@ set(SRC_FILES
   src/${PROJECT_NAME}.cpp
   src/color_button.cpp
   src/config_item.cpp
+  src/display_loader.cpp
   src/${PROJECT_NAME}_application.cpp
   src/map_canvas.cpp
   src/select_frame_dialog.cpp
@@ -249,6 +250,10 @@ target_link_libraries(rqt_${PROJECT_NAME} PUBLIC
 set_target_properties(rqt_${PROJECT_NAME} PROPERTIES
   AUTOMOC ON
 )
+# rqt_gui_cpp 1.7.2 added plugin.hpp and 1.10.3 removed plugin.h.
+if(rqt_gui_cpp_VERSION VERSION_LESS "1.7.2")
+  target_compile_definitions(rqt_${PROJECT_NAME} PUBLIC MAPVIZ_RQT_GUI_CPP_PLUGIN_H)
+endif()
 
 ### Build mapviz as a standalone executable ###
 add_executable(${PROJECT_NAME}
@@ -295,10 +300,42 @@ install(DIRECTORY launch
 )
 
 install(FILES plugin.xml
-  DESTINATION share/${PROJECT_NAME} 
+  DESTINATION share/${PROJECT_NAME}
 )
 
 pluginlib_export_plugin_description_file(rqt_gui "plugin.xml")
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+  find_package(std_msgs REQUIRED)
+
+  ament_add_gtest(test_${PROJECT_NAME}_plugin test/test_${PROJECT_NAME}_plugin.cpp)
+  if(TARGET test_${PROJECT_NAME}_plugin)
+    # ament_add_gtest() already used the plain signature on this target.
+    target_link_libraries(test_${PROJECT_NAME}_plugin
+      ${PROJECT_NAME}_core
+      ${std_msgs_TARGETS})
+  endif()
+
+  ament_add_gtest(test_display_loader test/test_display_loader.cpp)
+  if(TARGET test_display_loader)
+    target_link_libraries(test_display_loader ${PROJECT_NAME}_core)
+  endif()
+
+  ament_add_gtest(test_qt_font_compat test/test_qt_font_compat.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_qt_font_compat)
+    target_link_libraries(test_qt_font_compat ${PROJECT_NAME}_core)
+  endif()
+
+  ament_add_gtest(test_video_writer test/test_video_writer.cpp)
+  if(TARGET test_video_writer)
+    target_link_libraries(test_video_writer ${PROJECT_NAME}_core opencv_core opencv_videoio)
+  endif()
+endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
