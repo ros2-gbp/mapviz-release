@@ -26,11 +26,13 @@
 //
 // *****************************************************************************
 
-#ifndef MAPVIZ__TOPIC_SOURCE_HPP_
-#define MAPVIZ__TOPIC_SOURCE_HPP_
+#ifndef MAPVIZ__DISPLAY_LOADER_HPP_
+#define MAPVIZ__DISPLAY_LOADER_HPP_
+
+#include <yaml-cpp/yaml.h>
 
 #include <functional>
-#include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,25 +40,52 @@
 
 namespace mapviz
 {
-/**
- * A narrow, read-only view of the ROS graph for the topic/service selection
- * dialogs.  ROS graph queries are thread-safe, so unlike a raw node handle
- * this grants nothing that can register callbacks, create entities, or
- * otherwise require NodeUnsafe()'s caveats.  Obtain one from
- * MapvizPlugin::TopicSource().
- */
-struct TopicSource
+/// One entry of a config file's "displays" list.
+struct DisplaySpec
 {
-  /// Name -> datatypes, as returned by get_*_names_and_types().
-  using NamesAndTypes = std::map<std::string, std::vector<std::string>>;
-
-  /// Returns every known topic and its datatypes.
-  std::function<NamesAndTypes()> topics;
-  /// Returns every known service and its datatypes.
-  std::function<NamesAndTypes()> services;
-  /// Logger for the dialog's diagnostics.
-  rclcpp::Logger logger;
+  std::string type;
+  std::string name;
+  bool visible = true;
+  bool collapsed = false;
+  YAML::Node config;
 };
+
+/// Creates and configures one display.  May throw to report that it failed.
+using LoadDisplayFunction = std::function<void (const DisplaySpec & display)>;
+
+/**
+ * Loads every entry of a config file's "displays" list with @p load_display.
+ *
+ * Each display is loaded on its own: whatever one of them throws is logged
+ * and recorded, and the rest are still loaded.  Missing settings fall back to
+ * what a new display gets (visible, not collapsed, named after its type, and
+ * an empty config); only a display with no type fails, since there is nothing
+ * to create.
+ *
+ * @param[in] displays     The "displays" node of a config file.
+ * @param[in] load_display Creates and configures one display.
+ * @param[in] logger       Where failures are logged, with their details.
+ * @return One entry per display that failed, suitable for showing the user.
+ */
+std::vector<std::string> LoadDisplays(
+  const YAML::Node & displays,
+  const LoadDisplayFunction & load_display,
+  const rclcpp::Logger & logger);
+
+/**
+ * Reads a config file.
+ *
+ * An empty file is an empty config.  A file that is missing, can't be read,
+ * isn't valid YAML, or doesn't hold a map of settings is logged and gives
+ * nothing, so the caller can keep its current config.
+ *
+ * @param[in] filename The config file.
+ * @param[in] logger   Where problems are logged, with their details.
+ * @return The config's settings, if the file could be read.
+ */
+std::optional<YAML::Node> LoadConfigFile(
+  const std::string & filename,
+  const rclcpp::Logger & logger);
 }  // namespace mapviz
 
-#endif  // MAPVIZ__TOPIC_SOURCE_HPP_
+#endif  // MAPVIZ__DISPLAY_LOADER_HPP_
