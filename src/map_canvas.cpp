@@ -1,7 +1,6 @@
-  // *****************************************************************************
+// *****************************************************************************
 //
 // Copyright (c) 2014, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -28,16 +27,11 @@
 // *****************************************************************************
 
 
+#include <mapviz/map_canvas.hpp>
+
 #include <QOpenGLContext>
 #include <QPainter>
 #include <QSurfaceFormat>
-
-#include <mapviz/map_canvas.hpp>
-#include <mapviz/qt_mouse_event_compat.hpp>
-
-#include <geometry_msgs/msg/point.h>
-#include <swri_math_util/constants.h>
-
 
 // C++ standard libraries
 #include <algorithm>
@@ -45,6 +39,10 @@
 #include <list>
 #include <memory>
 #include <string>
+
+#include <mapviz/qt_mouse_event_compat.hpp>
+#include "geometry_msgs/msg/point.h"
+#include "swri_math_util/constants.h"
 
 
 namespace mapviz
@@ -101,18 +99,13 @@ geometry_msgs::msg::PointStamped make_point_stamped(double x, double y, double z
  * @param transform The source object
  * @return That tf as a ROS message
  */
-auto tf2_to_msg(const tf2::Stamped<tf2::Transform>& transform)
+auto tf2_to_msg(const tf2::Stamped<tf2::Transform> & transform)
 {
   return tf2::toMsg(transform);
 }
 
-MapCanvas::MapCanvas(QWidget* parent) :
-  QOpenGLWidget(parent),
-  has_pixel_buffers_(false),
-  pixel_buffer_size_(0),
-  pixel_buffer_ids_(),
-  pixel_buffer_index_(0),
-  capture_frames_(false),
+MapCanvas::MapCanvas(QWidget * parent)
+: QOpenGLWidget(parent),
   initialized_(false),
   fix_orientation_(false),
   rotate_90_(false),
@@ -154,47 +147,14 @@ MapCanvas::MapCanvas(QWidget* parent) :
   setFocusPolicy(Qt::StrongFocus);
 }
 
-MapCanvas::~MapCanvas()
-{
-  if (pixel_buffer_size_ != 0 && context() != nullptr) {
-    makeCurrent();
-    glDeleteBuffers(2, pixel_buffer_ids_);
-    doneCurrent();
-  }
-}
-
 void MapCanvas::InitializeTf(std::shared_ptr<tf2_ros::Buffer> tf)
 {
   tf_buf_ = tf;
 }
 
-void MapCanvas::InitializePixelBuffers()
-{
-  if (has_pixel_buffers_) {
-    int32_t buffer_size = width() * height() * 4;
-
-    if (pixel_buffer_size_ != buffer_size) {
-      if (pixel_buffer_size_ != 0) {
-        glDeleteBuffers(2, pixel_buffer_ids_);
-      }
-
-      glGenBuffers(2, pixel_buffer_ids_);
-      glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_buffer_ids_[0]);
-      glBufferData(GL_PIXEL_PACK_BUFFER, buffer_size, 0, GL_STREAM_READ);
-      glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_buffer_ids_[1]);
-      glBufferData(GL_PIXEL_PACK_BUFFER, buffer_size, 0, GL_STREAM_READ);
-      glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
-      pixel_buffer_size_ = buffer_size;
-    }
-  }
-}
-
 void MapCanvas::initializeGL()
 {
   initializeOpenGLFunctions();
-  has_pixel_buffers_ = context() != nullptr &&
-    context()->hasExtension(QByteArrayLiteral("GL_ARB_pixel_buffer_object"));
 
   glClearColor(0.58f, 0.56f, 0.5f, 1);
   applyAntialiasingState();
@@ -234,47 +194,14 @@ void MapCanvas::resizeGL(int /*w*/, int /*h*/)
   UpdateView();
 }
 
-void MapCanvas::CaptureFrame(bool force)
-{
-  // Ensure the pixel size is actually 4
-  glPixelStorei(GL_PACK_ALIGNMENT, 4);
-
-  if (has_pixel_buffers_ && !force) {
-    InitializePixelBuffers();
-
-    pixel_buffer_index_ = (pixel_buffer_index_ + 1) % 2;
-    int32_t next_index = (pixel_buffer_index_ + 1) % 2;
-
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_buffer_ids_[pixel_buffer_index_]);
-    glReadPixels(0, 0, width(), height(), GL_BGRA, GL_UNSIGNED_BYTE, 0);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, pixel_buffer_ids_[next_index]);
-    GLubyte* data = static_cast<GLubyte*>(
-      glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY));
-    if (data) {
-      capture_buffer_.resize(pixel_buffer_size_);
-      memcpy(&capture_buffer_[0], data, pixel_buffer_size_);
-      glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-    }
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-  } else {
-    int32_t buffer_size = width() * height() * 4;
-    capture_buffer_.clear();
-    capture_buffer_.resize(buffer_size);
-    glReadPixels(0, 0, width(), height(), GL_BGRA, GL_UNSIGNED_BYTE, &capture_buffer_[0]);
-  }
-}
-
 void MapCanvas::paintGL()
 {
-  if (capture_frames_) {
-    CaptureFrame();
-  }
-
   QPainter p(this);
-  p.setRenderHints(QPainter::Antialiasing |
-                   QPainter::TextAntialiasing |
-                   QPainter::SmoothPixmapTransform,
-                   enable_antialiasing_);
+  p.setRenderHints(
+    QPainter::Antialiasing |
+    QPainter::TextAntialiasing |
+    QPainter::SmoothPixmapTransform,
+    enable_antialiasing_);
   p.beginNativePainting();
   // .beginNativePainting() disables blending and clears a handful of other
   // values that we need to manually reset.
@@ -349,7 +276,7 @@ void MapCanvas::popGlMatrices()
   glPopMatrix();
 }
 
-void MapCanvas::wheelEvent(QWheelEvent* e)
+void MapCanvas::wheelEvent(QWheelEvent * e)
 {
   float numDegrees = e->angleDelta().y() / -8;
 
@@ -374,7 +301,8 @@ float MapCanvas::ClampViewScale(float scale) const
 void MapCanvas::SetMinViewScale(float scale)
 {
   if (!std::isfinite(scale) || scale <= 0.0f || scale > max_view_scale_) {
-    RCLCPP_ERROR(rclcpp::get_logger("mapviz"),
+    RCLCPP_ERROR(
+      rclcpp::get_logger("mapviz"),
       "Invalid minimum view scale: %f meters/pixel", scale);
     return;
   }
@@ -386,7 +314,8 @@ void MapCanvas::SetMinViewScale(float scale)
 void MapCanvas::SetMaxViewScale(float scale)
 {
   if (!std::isfinite(scale) || scale <= 0.0f || scale < min_view_scale_) {
-    RCLCPP_ERROR(rclcpp::get_logger("mapviz"),
+    RCLCPP_ERROR(
+      rclcpp::get_logger("mapviz"),
       "Invalid maximum view scale: %f meters/pixel", scale);
     return;
   }
@@ -395,7 +324,7 @@ void MapCanvas::SetMaxViewScale(float scale)
   SetViewScale(view_scale_);
 }
 
-void MapCanvas::mousePressEvent(QMouseEvent* e)
+void MapCanvas::mousePressEvent(QMouseEvent * e)
 {
   const QPointF mouse_position = MouseEventPosition(e);
   mouse_x_ = mouse_position.x();
@@ -407,7 +336,7 @@ void MapCanvas::mousePressEvent(QMouseEvent* e)
   mouse_button_ = e->button();
 }
 
-void MapCanvas::keyPressEvent(QKeyEvent* event)
+void MapCanvas::keyPressEvent(QKeyEvent * event)
 {
   std::list<MapvizPluginPtr>::iterator it;
   for (it = plugins_.begin(); it != plugins_.end(); ++it) {
@@ -415,18 +344,18 @@ void MapCanvas::keyPressEvent(QKeyEvent* event)
   }
 }
 
-QPointF MapCanvas::MapGlCoordToFixedFrame(const QPointF& point)
+QPointF MapCanvas::MapGlCoordToFixedFrame(const QPointF & point)
 {
   bool invertible = true;
   return qtransform_.inverted(&invertible).map(point);
 }
 
-QPointF MapCanvas::FixedFrameToMapGlCoord(const QPointF& point)
+QPointF MapCanvas::FixedFrameToMapGlCoord(const QPointF & point)
 {
   return qtransform_.map(point);
 }
 
-void MapCanvas::mouseReleaseEvent(QMouseEvent* /*e*/)
+void MapCanvas::mouseReleaseEvent([[maybe_unused]] QMouseEvent * e)
 {
   mouse_button_ = Qt::NoButton;
   mouse_pressed_ = false;
@@ -436,7 +365,7 @@ void MapCanvas::mouseReleaseEvent(QMouseEvent* /*e*/)
   drag_y_ = 0;
 }
 
-void MapCanvas::mouseMoveEvent(QMouseEvent* e)
+void MapCanvas::mouseMoveEvent(QMouseEvent * e)
 {
   const QPointF mouse_position = MouseEventPosition(e);
 
@@ -481,13 +410,13 @@ void MapCanvas::mouseMoveEvent(QMouseEvent* e)
   Q_EMIT Hover(point_out.point.x, point_out.point.y, view_scale_);
 }
 
-void MapCanvas::leaveEvent(QEvent* /*e*/)
+void MapCanvas::leaveEvent([[maybe_unused]] QEvent * e)
 {
   mouse_hovering_ = false;
   Q_EMIT Hover(0, 0, 0);
 }
 
-void MapCanvas::SetFixedFrame(const std::string& frame)
+void MapCanvas::SetFixedFrame(const std::string & frame)
 {
   fixed_frame_ = frame;
   std::list<MapvizPluginPtr>::iterator it;
@@ -496,7 +425,7 @@ void MapCanvas::SetFixedFrame(const std::string& frame)
   }
 }
 
-void MapCanvas::SetTargetFrame(const std::string& frame)
+void MapCanvas::SetTargetFrame(const std::string & frame)
 {
   offset_x_ = 0;
   offset_y_ = 0;
@@ -541,7 +470,7 @@ void MapCanvas::RemovePlugin(MapvizPluginPtr plugin)
   plugins_.remove(plugin);
 }
 
-void MapCanvas::TransformTarget(QPainter* painter)
+void MapCanvas::TransformTarget(QPainter * painter)
 {
   glTranslatef(offset_x_ + drag_x_, offset_y_ + drag_y_, 0);
   // In order for plugins drawing with a QPainter to be able to use the same coordinates
@@ -562,8 +491,7 @@ void MapCanvas::TransformTarget(QPainter* painter)
 
   bool success = false;
 
-  try
-  {
+  try {
     auto tfrm = tf_buf_->lookupTransform(
       fixed_frame_,
       target_frame_,
@@ -593,7 +521,8 @@ void MapCanvas::TransformTarget(QPainter* painter)
       -transform_.getOrigin().getX(),
       transform_.getOrigin().getY());
 
-    geometry_msgs::msg::PointStamped point = make_point_stamped(view_center_x_, view_center_y_, 0.0);
+    geometry_msgs::msg::PointStamped point =
+      make_point_stamped(view_center_x_, view_center_y_, 0.0);
     geometry_msgs::msg::PointStamped center;
 
     auto tfm_temp = tf2_to_msg(transform_);
@@ -609,7 +538,7 @@ void MapCanvas::TransformTarget(QPainter* painter)
       double center_x = -offset_x_ - drag_x_;
       double center_y = -offset_y_ - drag_y_;
       double x = center_x + (mouse_hover_x_ - width() / 2.0) * view_scale_;
-      double y = center_y + (height() / 2.0  - mouse_hover_y_) * view_scale_;
+      double y = center_y + (height() / 2.0 - mouse_hover_y_) * view_scale_;
 
       geometry_msgs::msg::PointStamped hover_in = make_point_stamped(x, y, 0.0);
       geometry_msgs::msg::PointStamped hover_out;
@@ -621,26 +550,17 @@ void MapCanvas::TransformTarget(QPainter* painter)
     }
 
     success = true;
-  }
-  catch (const tf2::LookupException& e)
-  {
+  } catch (const tf2::LookupException & e) {
     RCLCPP_ERROR(rclcpp::get_logger("mapviz"), "%s", e.what());
-  }
-  catch (const tf2::ConnectivityException& e)
-  {
+  } catch (const tf2::ConnectivityException & e) {
     RCLCPP_ERROR(rclcpp::get_logger("mapviz"), "%s", e.what());
-  }
-  catch (const tf2::ExtrapolationException& e)
-  {
+  } catch (const tf2::ExtrapolationException & e) {
     RCLCPP_ERROR(rclcpp::get_logger("mapviz"), "%s", e.what());
-  }
-  catch (...)
-  {
+  } catch (...) {
     RCLCPP_ERROR(rclcpp::get_logger("mapviz"), "Error looking up transform");
   }
 
-  if (!success)
-  {
+  if (!success) {
     qtransform_ = qtransform_.scale(1, -1);
     painter->setWorldTransform(qtransform_, false);
   }
@@ -662,7 +582,7 @@ void MapCanvas::UpdateView()
     glOrtho(view_left_, view_right_, view_top_, view_bottom_, -0.5f, 0.5f);
 
     qtransform_ = QTransform::fromTranslate(width() / 2.0, height() / 2.0).
-        scale(1.0 / view_scale_, 1.0 / view_scale_);
+      scale(1.0 / view_scale_, 1.0 / view_scale_);
   }
 }
 
@@ -693,7 +613,7 @@ void MapCanvas::setFrameRate(const double fps)
     return;
   }
 
-  frame_rate_timer_.setInterval(1000.0/fps);
+  frame_rate_timer_.setInterval(1000.0 / fps);
 }
 
 double MapCanvas::frameRate() const
