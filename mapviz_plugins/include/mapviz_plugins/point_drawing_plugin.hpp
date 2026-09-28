@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2014, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -30,19 +29,11 @@
 #ifndef MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_HPP_
 #define MAPVIZ_PLUGINS__POINT_DRAWING_PLUGIN_HPP_
 
-#include <mapviz/mapviz_plugin.hpp>
-#include <mapviz/map_canvas.hpp>
-
 // QT libraries
 #include <QOpenGLFunctions_1_1>
 #include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
-
-// ROS libraries
-#include <rclcpp/rclcpp.hpp>
-#include <swri_transform_util/transform.h>
-#include <tf2/transform_datatypes.hpp>
 
 // C++ standard libraries
 #include <deque>
@@ -50,16 +41,25 @@
 #include <string>
 #include <vector>
 
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/map_canvas.hpp>
+
+// ROS libraries
+#include <rclcpp/rclcpp.hpp>
+#include "swri_transform_util/transform.h"
+#include <tf2/transform_datatypes.hpp>
+
 namespace mapviz_plugins
 {
 class PointDrawingPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 {
   Q_OBJECT
 
-  public:
+public:
   struct StampedPoint
   {
-    StampedPoint(): transformed(false) {}
+    StampedPoint()
+    : transformed(false) {}
 
     tf2::Vector3 point;
     tf2::Quaternion orientation;
@@ -88,7 +88,7 @@ class PointDrawingPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctio
 
   virtual bool DrawPoints(double scale);
   virtual bool DrawArrows();
-  virtual bool DrawArrow(const StampedPoint& point);
+  virtual bool DrawArrow(const StampedPoint & point);
   virtual bool DrawLaps();
   virtual bool DrawLines();
   virtual void CollectLaps();
@@ -97,15 +97,16 @@ class PointDrawingPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctio
   // resolves one transform per pass and applies it to the whole route, so
   // points no longer each carry the transform that was current when they
   // arrived.
-  virtual void TransformPoint(StampedPoint& point,
-                              const swri_transform_util::Transform& transform);
+  virtual void TransformPoint(
+    StampedPoint & point,
+    const swri_transform_util::Transform & transform);
   virtual void UpdateColor(QColor base_color, int i);
   virtual void DrawCovariance();
 
-  protected Q_SLOTS:
+protected Q_SLOTS:
   virtual void BufferSizeChanged(int value);
   void DrawIcon() override;
-  virtual void SetColor(const QColor& color);
+  virtual void SetColor(const QColor & color);
   virtual void SetDrawStyle(QString style);
   virtual void SetDrawStyle(DrawStyle style);
   virtual void SetStaticArrowSizes(bool isChecked);
@@ -117,15 +118,15 @@ class PointDrawingPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctio
   void ResetTransformedPoints();
   void ClearPoints();
 
-  protected:
+protected:
   void Transform() override;
 
   void pushPoint(StampedPoint point);
   double bufferSize() const;
   double positionTolerance() const;
-  const std::deque<StampedPoint>& points() const;
+  const std::deque<StampedPoint> & points() const;
 
-  private:
+private:
   int arrow_size_;
   DrawStyle draw_style_;
   StampedPoint cur_point_;
@@ -141,8 +142,8 @@ class PointDrawingPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctio
   double scale_;
   bool static_arrow_sizes_;
 
-  private:
-  std::vector<std::deque<StampedPoint> > laps_;
+private:
+  std::vector<std::deque<StampedPoint>> laps_;
   bool got_begin_;
   tf2::Vector3 begin_;
 };

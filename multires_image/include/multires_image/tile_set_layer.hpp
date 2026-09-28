@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2014, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -27,61 +26,59 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_TILE_SET_LAYER_HPP_
-#define MULTIRES_IMAGE_TILE_SET_LAYER_HPP_
+#ifndef MULTIRES_IMAGE__TILE_SET_LAYER_HPP_
+#define MULTIRES_IMAGE__TILE_SET_LAYER_HPP_
 
 // C++ standard libraries
 #include <string>
 #include <vector>
 
 #include <tf2/transform_datatypes.hpp>
-
-#include <swri_transform_util/georeference.h>
-
+#include "swri_transform_util/georeference.h"
 #include <multires_image/tile.hpp>
 
 namespace multires_image
 {
-  class TileSetLayer
-  {
-  public:
-    TileSetLayer(
-      const swri_transform_util::GeoReference& geo,
-      const std::string& path,
-      int tileSize, int layer);
+class TileSetLayer
+{
+public:
+  TileSetLayer(
+    const swri_transform_util::GeoReference & geo,
+    const std::string & path,
+    int tileSize, int layer);
 
-    ~TileSetLayer() = default;
+  ~TileSetLayer() = default;
 
-    bool Load();
-    bool Load(const std::string extension);
+  bool Load();
+  bool Load(const std::string extension);
 
-    Tile* GetTile(int column, int row) { return m_tiles[column][row]; }
+  Tile * GetTile(int column, int row) {return m_tiles[column][row];}
 
-    void GetTileIndex(const tf2::Vector3& position, int& row, int& column) const;
-    void GetTileIndex(double x, double y, int& row, int& column) const;
-    void GetTileRange(
-      const tf2::Vector3& top_left,
-      const tf2::Vector3& bottom_right,
-      int& startRow, int& startColumn,
-      int& endRow, int& endColumn) const;
+  void GetTileIndex(const tf2::Vector3 & position, int & row, int & column) const;
+  void GetTileIndex(double x, double y, int & row, int & column) const;
+  void GetTileRange(
+    const tf2::Vector3 & top_left,
+    const tf2::Vector3 & bottom_right,
+    int & startRow, int & startColumn,
+    int & endRow, int & endColumn) const;
 
-    int RowCount() { return m_rows; }
-    int ColumnCount() { return m_columns; }
+  int RowCount() {return m_rows;}
+  int ColumnCount() {return m_columns;}
 
-  private:
-    const swri_transform_util::GeoReference& m_geo;
-    const std::string      m_path;
-    const int              m_tileSize;
-    const int              m_layer;
-    const double           m_scale;
+private:
+  const swri_transform_util::GeoReference & m_geo;
+  const std::string m_path;
+  const int m_tileSize;
+  const int m_layer;
+  const double m_scale;
 
-    bool                   m_expectTiles;
+  bool m_expectTiles;
 
-    int                    m_columns;
-    int                    m_rows;
+  int m_columns;
+  int m_rows;
 
-    std::vector<std::vector<Tile*> > m_tiles;
-  };
-}
+  std::vector<std::vector<Tile *>> m_tiles;
+};
+}  // namespace multires_image
 
-#endif  // MULTIRES_IMAGE_TILE_SET_LAYER_HPP_
+#endif  // MULTIRES_IMAGE__TILE_SET_LAYER_HPP_
