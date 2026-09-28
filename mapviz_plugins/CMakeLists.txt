@@ -193,7 +193,8 @@ set(SRC_FILES
   src/string_plugin.cpp
   src/textured_marker_plugin.cpp
   src/tf_frame_plugin.cpp
-  src/topic_select.cpp)
+  src/topic_select.cpp
+  src/topic_type_watcher.cpp)
 
 set(HEADER_FILES
   include/${PROJECT_NAME}/attitude_indicator_plugin.hpp
@@ -226,7 +227,8 @@ set(HEADER_FILES
   include/${PROJECT_NAME}/string_plugin.hpp
   include/${PROJECT_NAME}/textured_marker_plugin.hpp
   include/${PROJECT_NAME}/tf_frame_plugin.hpp
-  include/${PROJECT_NAME}/topic_select.hpp)
+  include/${PROJECT_NAME}/topic_select.hpp
+  include/${PROJECT_NAME}/topic_type_watcher.hpp)
 
 set(MAPVIZ_PLUGINS_QT_LIBRARIES
   Qt${QT_VERSION_MAJOR}::Core
@@ -277,9 +279,11 @@ target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     WFlags=WindowFlags)
 
-# cv_bridge 3.5.0 (ROS 2 Iron) started transitioning some files from .h to .hpp extensions
-if (cv_bridge_VERSION VERSION_LESS "3.5.0")
-  target_compile_definitions(${PROJECT_NAME} PRIVATE USE_CVBRIDGE_H_FILES)
+# cv_bridge 3.5.0 (ROS 2 Iron) started transitioning some files from .h to .hpp extensions.
+# Public because image_plugin.hpp and disparity_plugin.hpp choose their include
+# with it, so anything including them (such as the tests) needs it too.
+if(cv_bridge_VERSION VERSION_LESS "3.5.0")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC USE_CVBRIDGE_H_FILES)
 endif()
 
 if(MAPVIZ_PLUGINS_IMAGE_TRANSPORT_TAKES_NODE_REF)
@@ -360,6 +364,9 @@ if(nav2_msgs_FOUND)
 endif()
 
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_gtest REQUIRED)
 
   # The plugins build Qt widgets in their constructors, so the test needs a
@@ -373,6 +380,38 @@ if(BUILD_TESTING)
     # the library target's autogen directory rather than on its usage
     # requirements.
     target_include_directories(test_plugin_config
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_plan_route test/test_plan_route.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plan_route)
+    target_link_libraries(test_plan_route ${PROJECT_NAME})
+    target_include_directories(test_plan_route
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_plugin_round_trip test/test_plugin_round_trip.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plugin_round_trip)
+    target_link_libraries(test_plugin_round_trip ${PROJECT_NAME})
+    target_include_directories(test_plugin_round_trip
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_plugin_signals test/test_plugin_signals.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_plugin_signals)
+    target_link_libraries(test_plugin_signals ${PROJECT_NAME})
+    target_include_directories(test_plugin_signals
+      PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
+  endif()
+
+  ament_add_gtest(test_malformed_messages test/test_malformed_messages.cpp
+    ENV QT_QPA_PLATFORM=offscreen)
+  if(TARGET test_malformed_messages)
+    target_link_libraries(test_malformed_messages ${PROJECT_NAME})
+    target_include_directories(test_malformed_messages
       PRIVATE ${MAPVIZ_PLUGINS_AUTOGEN_INCLUDE_DIR})
   endif()
 endif()
