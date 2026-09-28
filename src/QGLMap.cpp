@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2026, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -29,15 +28,15 @@
 
 #include <multires_image/QGLMap.hpp>
 
-#include <mapviz/qt_mouse_event_compat.hpp>
-
 // C++ standard libraries
 #include <cmath>
 
+#include <mapviz/qt_mouse_event_compat.hpp>
+
 namespace multires_image
 {
-QGLMap::QGLMap(QWidget *parent)
-  : QOpenGLWidget(parent)
+QGLMap::QGLMap(QWidget * parent)
+: QOpenGLWidget(parent)
   , ui()
   , m_initialized(false)
   , m_scale(1.0)
@@ -57,47 +56,52 @@ QGLMap::QGLMap(QWidget *parent)
 
 void QGLMap::Exit()
 {
-  if (m_tileView != nullptr)
-  {
+  if (m_tileView != nullptr) {
     m_tileView->Exit();
   }
 }
 
 void QGLMap::UpdateView()
 {
-  if (m_initialized)
-  {
+  if (m_initialized) {
     Recenter();
 
-    if (m_tileView != nullptr)
-    {
+    if (m_tileView != nullptr) {
       m_tileView->SetView(m_view_center.x(), m_view_center.y(), 1, m_scale);
     }
 
-    glViewport(0, 0, width(), height());
+    // The viewport is in device pixels, which differ from the widget's size
+    // on a scaled screen.
+    const qreal device_pixel_ratio = devicePixelRatioF();
+    glViewport(
+      0,
+      0,
+      static_cast<GLsizei>(width() * device_pixel_ratio),
+      static_cast<GLsizei>(height() * device_pixel_ratio));
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(m_view_top_left.x(), m_view_bottom_right.x(),
-        m_view_bottom_right.y(), m_view_top_left.y(), -0.5f, 0.5f);
+    glOrtho(
+      m_view_top_left.x(), m_view_bottom_right.x(),
+      m_view_bottom_right.y(), m_view_top_left.y(), -0.5f, 0.5f);
 
     update();
 
     // Signal a view change as occured.  The minimap listens for this
     // so that it can update its view box.
     emit SignalViewChange(m_view_top_left.x(), m_view_top_left.y(),
-        m_view_bottom_right.x(), m_view_bottom_right.y());
+      m_view_bottom_right.x(), m_view_bottom_right.y());
   }
 }
 
-void QGLMap::SetTiles(TileSet* tiles)
+void QGLMap::SetTiles(TileSet * tiles)
 {
   double top, left, bottom, right;
   tiles->GeoReference().GetCoordinate(0, 0, left, top);
   tiles->GeoReference().GetCoordinate(
-      tiles->GeoReference().Width(),
-      tiles->GeoReference().Height(),
-      right,
-      bottom);
+    tiles->GeoReference().Width(),
+    tiles->GeoReference().Height(),
+    right,
+    bottom);
 
   m_scene_top_left = tf2::Vector3(left, top, 0);
   m_scene_bottom_right = tf2::Vector3(right, bottom, 0);
@@ -107,8 +111,9 @@ void QGLMap::SetTiles(TileSet* tiles)
 
   m_tileView = new TileView(tiles, this);
 
-  connect(m_tileView->Cache(), SIGNAL(SignalMemorySize(int64_t)),
-    SLOT(SetTextureMemory(int64_t)));
+  connect(
+    m_tileView->Cache(), SIGNAL(SignalMemorySize(qint64)),
+    SLOT(SetTextureMemory(qint64)));
 
   // Create connections for the texture loading functions which must
   // be executed on this object's thread.
@@ -116,7 +121,7 @@ void QGLMap::SetTiles(TileSet* tiles)
   m_tileView->SetView(m_view_center.x(), m_view_center.y(), 1, m_scale);
 }
 
-void QGLMap::wheelEvent(QWheelEvent* e)
+void QGLMap::wheelEvent(QWheelEvent * e)
 {
   float numDegrees = static_cast<float>(e->angleDelta().y()) / -8.0f;
 
@@ -125,17 +130,17 @@ void QGLMap::wheelEvent(QWheelEvent* e)
   UpdateView();
 }
 
-void QGLMap::LoadTexture(Tile* tile)
+void QGLMap::LoadTexture(Tile * tile)
 {
   tile->LoadTexture();
 }
 
-void QGLMap::DeleteTexture(Tile* tile)
+void QGLMap::DeleteTexture(Tile * tile)
 {
   tile->UnloadTexture();
 }
 
-void QGLMap::SetTextureMemory(int64_t bytes)
+void QGLMap::SetTextureMemory(qint64 bytes)
 {
   // Signal that the texture memory size has changed.  The status bar listens
   // to this so that the user can see how much memory the map is using.
@@ -144,11 +149,13 @@ void QGLMap::SetTextureMemory(int64_t bytes)
 
 void QGLMap::ChangeCenter(double x, double y)
 {
-  if (x != 0)
+  if (x != 0) {
     m_view_center.setX(x);
+  }
 
-  if (y != 0)
+  if (y != 0) {
     m_view_center.setY(y);
+  }
 
   UpdateView();
 }
@@ -166,7 +173,7 @@ void QGLMap::initializeGL()
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glDepthFunc(GL_NEVER);
-    glDisable(GL_DEPTH_TEST);
+  glDisable(GL_DEPTH_TEST);
   m_initialized = true;
 }
 
@@ -179,13 +186,12 @@ void QGLMap::paintGL()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  if (m_tileView != nullptr)
-  {
+  if (m_tileView != nullptr) {
     m_tileView->Draw();
   }
 }
 
-void QGLMap::mousePressEvent(QMouseEvent* e)
+void QGLMap::mousePressEvent(QMouseEvent * e)
 {
   const QPointF mouse_position = mapviz::MouseEventPosition(e);
   m_mouseDownX = mouse_position.x();
@@ -195,19 +201,19 @@ void QGLMap::mousePressEvent(QMouseEvent* e)
   update();
 }
 
-void QGLMap::mouseDoubleClickEvent(QMouseEvent* /*e*/)
+void QGLMap::mouseDoubleClickEvent([[maybe_unused]] QMouseEvent * e)
 {
   update();
 }
 
-void QGLMap::mouseReleaseEvent(QMouseEvent* /*e*/)
+void QGLMap::mouseReleaseEvent([[maybe_unused]] QMouseEvent * e)
 {
   m_mouseDown = false;
 
   update();
 }
 
-void QGLMap::mouseMoveEvent(QMouseEvent* e)
+void QGLMap::mouseMoveEvent(QMouseEvent * e)
 {
   if (m_mouseDown) {
     const QPointF mouse_position = mapviz::MouseEventPosition(e);
@@ -218,27 +224,23 @@ void QGLMap::mouseMoveEvent(QMouseEvent* e)
 void QGLMap::MousePan(int x, int y)
 {
   bool changed = false;
-  if (m_mouseDown)
-  {
+  if (m_mouseDown) {
     double diffX = ((m_mouseDownX - x) * m_scale);
     double diffY = ((m_mouseDownY - y) * m_scale);
 
-    if (diffX != 0)
-    {
+    if (diffX != 0) {
       m_view_center.setX(m_view_center.x() + diffX);
       m_mouseDownX = x;
       changed = true;
     }
-    if (diffY != 0)
-    {
+    if (diffY != 0) {
       m_view_center.setY(m_view_center.y() + diffY);
       m_mouseDownY = y;
       changed = true;
     }
   }
 
-  if (changed)
-  {
+  if (changed) {
     UpdateView();
   }
 }
@@ -256,46 +258,36 @@ void QGLMap::Recenter()
   m_view_bottom_right.setX(m_view_center.x() + (view_width * 0.5));
   m_view_bottom_right.setY(m_view_center.y() + (view_width * 0.5));
 
-  if (view_width > scene_width)
-  {
+  if (view_width > scene_width) {
     m_view_center.setX(m_scene_center.x());
     m_view_top_left.setX(m_view_center.x() - (view_width * 0.5));
     m_view_bottom_right.setX(m_view_center.x() + (view_width * 0.5));
-  }
-  else
-  {
-    if (m_view_top_left.x() < m_scene_top_left.x())
-    {
+  } else {
+    if (m_view_top_left.x() < m_scene_top_left.x()) {
       m_view_top_left.setX(m_scene_top_left.x());
       m_view_bottom_right.setX(m_view_top_left.x() + view_width);
       m_view_center.setX(m_view_top_left.x() + (view_width * 0.5));
     }
 
-    if (m_view_bottom_right.x() > m_scene_bottom_right.x())
-    {
+    if (m_view_bottom_right.x() > m_scene_bottom_right.x()) {
       m_view_bottom_right.setX(m_scene_bottom_right.x());
       m_view_top_left.setX(m_view_bottom_right.x() - view_width);
       m_view_center.setX(m_view_top_left.x() + (view_width * 0.5));
     }
   }
 
-  if (view_height < scene_height)
-  {
+  if (view_height < scene_height) {
     m_view_center.setY(m_scene_center.y());
     m_view_top_left.setY(m_scene_center.y() - (view_height * 0.5));
     m_view_bottom_right.setY(m_scene_center.y() + (view_height * 0.5));
-  }
-  else
-  {
-    if (m_view_top_left.y() > m_scene_top_left.y())
-    {
+  } else {
+    if (m_view_top_left.y() > m_scene_top_left.y()) {
       m_view_top_left.setY(m_scene_top_left.y());
       m_view_bottom_right.setY(m_view_top_left.y() + (view_height));
       m_view_center.setY(m_view_top_left.y() + (view_height * 0.5));
     }
 
-    if (m_view_bottom_right.y() < m_scene_bottom_right.y())
-    {
+    if (m_view_bottom_right.y() < m_scene_bottom_right.y()) {
       m_view_bottom_right.setY(m_scene_bottom_right.y());
       m_view_top_left.setY(m_view_bottom_right.y() - (view_height));
       m_view_center.setY(m_view_top_left.y() + (view_height * 0.5));
@@ -303,5 +295,4 @@ void QGLMap::Recenter()
   }
 }
 
-}
-
+}  // namespace multires_image
