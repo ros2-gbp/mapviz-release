@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2026, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -27,61 +26,58 @@
 //
 // *****************************************************************************
 
+#include "mapviz_plugins/canvas_click_filter.hpp"
+
 #include <QMouseEvent>
 #include <QLineF>
 #include <QDateTime>
 
 #include <mapviz/qt_mouse_event_compat.hpp>
 
-#include "mapviz_plugins/canvas_click_filter.hpp"
-
 namespace mapviz_plugins
 {
-  CanvasClickFilter::CanvasClickFilter()
-  : QObject()
+CanvasClickFilter::CanvasClickFilter()
+: QObject()
   , is_mouse_down_(false)
   , max_ms_(Q_INT64_C(500))
   , max_distance_(2.0)
-  { }
+{}
 
-  void CanvasClickFilter::setMaxClickTime(qint64 max_ms)
-  {
-    max_ms_ = max_ms;
-  }
+void CanvasClickFilter::setMaxClickTime(qint64 max_ms)
+{
+  max_ms_ = max_ms;
+}
 
-  void CanvasClickFilter::setMaxClickMovement(qreal max_distance)
-  {
-    max_distance_ = max_distance;
-  }
+void CanvasClickFilter::setMaxClickMovement(qreal max_distance)
+{
+  max_distance_ = max_distance;
+}
 
-  bool CanvasClickFilter::eventFilter(QObject* /*object*/, QEvent* event)
-  {
-    if (event->type() == QEvent::MouseButtonPress)
-    {
-      is_mouse_down_ = true;
-      QMouseEvent* me = dynamic_cast<QMouseEvent*>(event);
-      mouse_down_pos_ = mapviz::MouseEventPosition(me);
-      mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
-    } else if (event->type() == QEvent::MouseButtonRelease) {
-      if (is_mouse_down_)
-      {
-        QMouseEvent* me = dynamic_cast<QMouseEvent*>(event);
-        const QPointF mouse_position = mapviz::MouseEventPosition(me);
+bool CanvasClickFilter::eventFilter(QObject * /*object*/, QEvent * event)
+{
+  if (event->type() == QEvent::MouseButtonPress) {
+    is_mouse_down_ = true;
+    QMouseEvent * me = dynamic_cast<QMouseEvent *>(event);
+    mouse_down_pos_ = mapviz::MouseEventPosition(me);
+    mouse_down_time_ = QDateTime::currentMSecsSinceEpoch();
+  } else if (event->type() == QEvent::MouseButtonRelease) {
+    if (is_mouse_down_) {
+      QMouseEvent * me = dynamic_cast<QMouseEvent *>(event);
+      const QPointF mouse_position = mapviz::MouseEventPosition(me);
 
-        qreal distance = QLineF(mouse_down_pos_, mouse_position).length();
-        qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
+      qreal distance = QLineF(mouse_down_pos_, mouse_position).length();
+      qint64 msecsDiff = QDateTime::currentMSecsSinceEpoch() - mouse_down_time_;
 
-        // Only fire the event if the mouse has moved less than the maximum distance
-        // and was held for shorter than the maximum time..  This prevents click
-        // events from being fired if the user is dragging the mouse across the map
-        // or just holding the cursor in place.
-        if (msecsDiff < max_ms_ && distance <= max_distance_)
-        {
-          Q_EMIT pointClicked(mouse_position);
-        }
+      // Only fire the event if the mouse has moved less than the maximum distance
+      // and was held for shorter than the maximum time..  This prevents click
+      // events from being fired if the user is dragging the mouse across the map
+      // or just holding the cursor in place.
+      if (msecsDiff < max_ms_ && distance <= max_distance_) {
+        Q_EMIT pointClicked(mouse_position);
       }
-      is_mouse_down_ = false;
     }
-    return false;
+    is_mouse_down_ = false;
   }
+  return false;
+}
 }   // namespace mapviz_plugins
