@@ -81,7 +81,7 @@ set(TILE_HEADER_FILES
   include/${PROJECT_NAME}/tile_cache.hpp
 )
 
-add_library(${PROJECT_NAME} 
+add_library(${PROJECT_NAME}
   ${TILE_SRC_FILES}
   ${TILE_HEADER_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -251,6 +251,24 @@ install(DIRECTORY launch
 )
 
 pluginlib_export_plugin_description_file(mapviz mapviz_plugins.xml)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_tile_set test/test_tile_set.cpp)
+  if(TARGET test_tile_set)
+    # ament_add_gtest() already used the plain signature on this target.
+    target_link_libraries(test_tile_set ${PROJECT_NAME})
+  endif()
+
+  ament_add_gtest(test_queued_signals test/test_queued_signals.cpp)
+  if(TARGET test_queued_signals)
+    target_link_libraries(test_queued_signals ${PROJECT_NAME} multires_widget)
+  endif()
+endif()
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
