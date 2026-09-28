@@ -1,7 +1,6 @@
 // *****************************************************************************
 //
 // Copyright (c) 2014, Southwest Research Institute® (SwRI®)
-// All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,14 +9,14 @@
 //     * Redistributions in binary form must reproduce the above copyright
 //       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
-//     * Neither the name of Southwest Research Institute® (SwRI®) nor the
+//     * Neither the name of the Southwest Research Institute® (SwRI®) nor the
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 // IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-// ARE DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
 // DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 // (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
 // LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
@@ -27,12 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef MULTIRES_IMAGE_MULTIRES_VIEW_NODE_HPP_
-#define MULTIRES_IMAGE_MULTIRES_VIEW_NODE_HPP_
-
-// C++ standard libraries
-#include <string>
-#include <thread>
+#ifndef MULTIRES_IMAGE__MULTIRES_VIEW_NODE_HPP_
+#define MULTIRES_IMAGE__MULTIRES_VIEW_NODE_HPP_
 
 // QT libraries
 #include <QMainWindow>
@@ -40,44 +35,49 @@
 #include <QLabel>
 #include <QShowEvent>
 
+// C++ standard libraries
+#include <string>
+#include <thread>
+
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
-
 #include <multires_image/QGLMap.hpp>
 #include <multires_image/tile_set.hpp>
 
 namespace multires_image
 {
-  class MultiresViewNode : public QMainWindow
-  {
-    Q_OBJECT
+class MultiresViewNode : public QMainWindow
+{
+  Q_OBJECT
 
-  public:
-    MultiresViewNode(int argc, char **argv, QWidget *parent = 0, Qt::WindowFlags flags = Qt::WindowFlags());
-    ~MultiresViewNode() override = default;
+public:
+  MultiresViewNode(
+    int argc, char ** argv, QWidget * parent = 0,
+    Qt::WindowFlags flags = Qt::WindowFlags());
+  ~MultiresViewNode() override = default;
 
-    virtual void showEvent(QShowEvent* event) override;
+  void showEvent(QShowEvent * event) override;
 
-    void Initialize();
+  void Initialize();
 
-    void Spin();
+  void Spin();
 
-  private:
-    void SpinLoop();
+private:
+  void SpinLoop();
 
-    int argc_;
-    char** argv_;
+  int argc_;
+  char ** argv_;
 
-    rclcpp::Node::SharedPtr node_;
-    rclcpp::executors::SingleThreadedExecutor executor_;
-    std::thread*  thread_;
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::executors::SingleThreadedExecutor executor_;
+  std::thread * thread_;
 
-    bool initialized_;
+  bool initialized_;
 
-    std::string image_path_;
+  std::string image_path_;
 
-    TileSet* tile_set_;
-  };
-}
+  TileSet * tile_set_;
+};
+}  // namespace multires_image
 
-#endif  // MULTIRES_IMAGE_MULTIRES_VIEW_NODE_HPP_
+#endif  // MULTIRES_IMAGE__MULTIRES_VIEW_NODE_HPP_
