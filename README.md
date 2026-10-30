@@ -1,3 +1,31 @@
+## mapviz (kilted) - 4.2.0-1
+
+The packages in the `mapviz` repository were released into the `kilted` distro by running `/usr/bin/bloom-release --rosdistro kilted --track kilted mapviz --edit` on `Fri, 30 Oct 2026 15:18:43 -0000`
+
+These packages were released:
+- `mapviz`
+- `mapviz_interfaces`
+- `mapviz_plugins`
+- `multires_image`
+- `tile_map`
+
+Version of package(s) in repository `mapviz`:
+
+- upstream repository: https://github.com/swri-robotics/mapviz.git
+- release repository: https://github.com/ros2-gbp/mapviz-release.git
+- rosdistro version: `4.1.2-1`
+- old version: `4.1.2-1`
+- new version: `4.2.0-1`
+
+Versions of tools used:
+
+- bloom version: `0.14.4`
+- catkin_pkg version: `1.1.1`
+- rosdep version: `0.27.0`
+- rosdistro version: `1.1.0`
+- vcstools version: `0.1.42`
+
+
 ## mapviz (jazzy) - 4.2.0-2
 
 The packages in the `mapviz` repository were released into the `jazzy` distro by running `/usr/bin/bloom-release --rosdistro jazzy --track jazzy mapviz --edit` on `Fri, 30 Oct 2026 15:16:29 -0000`
