@@ -1,0 +1,62 @@
+# See https://pre-commit.com for more information.
+#
+# The ament hooks run the same linters as `colcon test` and need a sourced ROS 2 environment:
+#   source /opt/ros/$ROS_DISTRO/setup.bash
+#   pre-commit install
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-xml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: local
+    hooks:
+      - id: ament_copyright
+        name: ament_copyright
+        entry: ament_copyright
+        language: system
+        files: (\.(c|cc|cpp|cxx|h|hh|hpp|hxx|py|cmake)|CMakeLists\.txt)$
+      # ament_cppcheck skips every cppcheck 2.x release unless this variable is set.
+      - id: ament_cppcheck
+        name: ament_cppcheck
+        entry: env AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1 ament_cppcheck --language c++
+        language: system
+        files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
+      - id: ament_cpplint
+        name: ament_cpplint
+        entry: ament_cpplint
+        language: system
+        files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
+      - id: ament_flake8
+        name: ament_flake8
+        entry: ament_flake8
+        language: system
+        types: [python]
+      - id: ament_lint_cmake
+        name: ament_lint_cmake
+        entry: ament_lint_cmake
+        language: system
+        files: (CMakeLists\.txt|\.cmake)$
+      - id: ament_pep257
+        name: ament_pep257
+        entry: ament_pep257
+        language: system
+        types: [python]
+      - id: ament_uncrustify
+        name: ament_uncrustify
+        entry: ament_uncrustify --language CPP
+        language: system
+        files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
+      - id: ament_xmllint
+        name: ament_xmllint
+        entry: ament_xmllint
+        language: system
+        files: package\.xml$
