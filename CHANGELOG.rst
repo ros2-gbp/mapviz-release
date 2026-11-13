@@ -2,6 +2,9 @@
 Changelog for package multires_image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.2.1 (2026-11-13)
+------------------
+
 4.2.0 (2026-10-30)
 ------------------
 * Improving logic for selecting whether to build against Qt5 or Qt6 (`#988 <https://github.com/swri-robotics/mapviz/issues/988>`_)
