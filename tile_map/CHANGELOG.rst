@@ -2,6 +2,9 @@
 Changelog for package tile_map
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.2.1 (2026-11-13)
+------------------
+
 4.2.0 (2026-10-30)
 ------------------
 * Adding attribution on map for different sources (`#989 <https://github.com/swri-robotics/mapviz/issues/989>`_)
