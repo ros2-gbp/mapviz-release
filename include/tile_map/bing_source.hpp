@@ -33,8 +33,11 @@
 #include <QImage>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QObject>
 #include <QString>
 
+#include <cstddef>
+#include <cstdint>
 #include <random>
 #include <string>
 #include <vector>
