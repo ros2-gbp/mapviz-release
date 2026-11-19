@@ -30,7 +30,8 @@
 #define MAPVIZ_PLUGINS__CANVAS_CLICK_FILTER_HPP_
 
 #include <QObject>
-#include <QPoint>
+#include <QPointF>
+#include <QtGlobal>
 
 /**
  * This is a very simple event filter that listens for mouseReleased events;
