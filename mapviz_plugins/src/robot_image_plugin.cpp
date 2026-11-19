@@ -30,14 +30,26 @@
 
 // QT libraries
 #include <QOpenGLWidget>
-#include <QPalette>
 #include <QImage>
 #include <QFileDialog>
 #include <QDir>
+#include <QDialog>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QList>
+#include <QOpenGLFunctions>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QString>
+#include <Qt>
+#include <QtGlobal>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
 #include "ament_index_cpp/version.h"
+#include "swri_transform_util/transform.h"
+#include "yaml-cpp/yaml.h"
+#include <mapviz/status_label.hpp>
 
 // The version is compared arithmetically rather than with
 // AMENT_INDEX_CPP_VERSION_GTE(), because cppcheck does not see this header and
@@ -50,9 +62,14 @@
 #endif
 
 // C++ standard libraries
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <exception>
+#include <filesystem>
+#include <functional>
+#include <memory>
 #include <string>
-#include <vector>
 
 #include <mapviz/select_frame_dialog.hpp>
 
@@ -75,19 +92,12 @@ RobotImagePlugin::RobotImagePlugin()
   , dimension_(0)
   , texture_id_(0)
   , texture_loaded_(false)
+  , texture_pending_(false)
   , transformed_(false)
 {
   ui_.setupUi(config_widget_);
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   UpdateShape();
 
@@ -151,7 +161,7 @@ void RobotImagePlugin::ImageEdited()
 void RobotImagePlugin::FrameEdited()
 {
   source_frame_ = ui_.frame->text().toStdString();
-  PrintWarning("Waiting for transform.");
+  PrintWarning("Waiting for transform");
 
   RCLCPP_INFO(Logger(), "Setting target frame to to %s", source_frame_.c_str());
 
@@ -259,6 +269,12 @@ bool RobotImagePlugin::Initialize(QOpenGLWidget * canvas)
 
 void RobotImagePlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
 {
+  // LoadImage() runs from config loading and UI slots, where the canvas's GL
+  // context is not current; the texture is uploaded here, where it is.
+  if (texture_pending_) {
+    UploadTexture();
+  }
+
   if (texture_loaded_ && transformed_) {
     glColor3f(1.0f, 1.0f, 1.0f);
     glEnable(GL_TEXTURE_2D);
@@ -301,13 +317,7 @@ void RobotImagePlugin::LoadImage()
   try {
     QImage nullImage;
     image_ = nullImage;
-
-    if (texture_loaded_) {
-      GLuint ids[1];
-      ids[0] = static_cast<GLuint>(texture_id_);
-      glDeleteTextures(1, &ids[0]);
-      texture_loaded_ = false;
-    }
+    texture_pending_ = false;
 
     const std::string prefix = "$(find ";
     std::string real_filename;
@@ -333,7 +343,6 @@ void RobotImagePlugin::LoadImage()
       real_filename = filename_;
     }
 
-
     if (image_.load(real_filename.c_str())) {
       int width = image_.width();
       int height = image_.height();
@@ -357,38 +366,56 @@ void RobotImagePlugin::LoadImage()
       image_ = image_.convertToFormat(QImage::Format_RGBA8888).mirrored(false, true);
 #endif
 
-      GLuint ids[1];
-      glGenTextures(1, &ids[0]);
-      texture_id_ = ids[0];
-
-      glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture_id_));
-      glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        dimension_,
-        dimension_,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        image_.bits());
-
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-      texture_loaded_ = true;
+      texture_pending_ = true;
       if (ui_.ratio_original->isChecked() ) {
         RatioOriginalToggled(true);
       }
     } else {
-      PrintError("Failed to load image.");
+      PrintError("Failed to load image");
     }
   } catch (const std::exception & e) {
-    PrintError("Failed to load image.  Exception occured.");
+    PrintError("Failed to load image: exception occurred");
   }
+}
+
+void RobotImagePlugin::UploadTexture()
+{
+  texture_pending_ = false;
+
+  if (texture_loaded_) {
+    GLuint ids[1];
+    ids[0] = static_cast<GLuint>(texture_id_);
+    glDeleteTextures(1, &ids[0]);
+    texture_loaded_ = false;
+  }
+
+  if (image_.isNull()) {
+    return;
+  }
+
+  GLuint ids[1];
+  glGenTextures(1, &ids[0]);
+  texture_id_ = ids[0];
+
+  glBindTexture(GL_TEXTURE_2D, static_cast<GLuint>(texture_id_));
+  glTexImage2D(
+    GL_TEXTURE_2D,
+    0,
+    GL_RGBA,
+    dimension_,
+    dimension_,
+    0,
+    GL_RGBA,
+    GL_UNSIGNED_BYTE,
+    image_.bits());
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  texture_loaded_ = true;
 }
 
 void RobotImagePlugin::LoadConfig(const YAML::Node & node, const std::string & /*path*/)

@@ -28,16 +28,23 @@
 
 #include <mapviz_plugins/point_drawing_plugin.hpp>
 
-#include <QOpenGLWidget>
-#include <QPalette>
+#include <QOpenGLFunctions>
 #include <QPainter>
+#include <QPen>
+#include <QPixmap>
+#include <Qt>
 
+#include <climits>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
-#include <list>
 #include <string>
+#include <utility>
 
-#include <opencv2/core/core.hpp>
-#include "swri_transform_util/transform_util.h"
+#include <mapviz/widgets.hpp>
+#include "swri_transform_util/transform.h"
+#include <tf2/LinearMath/Transform.hpp>
 
 namespace mapviz_plugins
 {
@@ -72,8 +79,7 @@ void PointDrawingPlugin::ClearHistory()
 void PointDrawingPlugin::DrawIcon()
 {
   if (icon_) {
-    QPixmap icon(16, 16);
-    icon.fill(Qt::transparent);
+    QPixmap icon = mapviz::IconWidget::CreatePixmap();
 
     QPainter painter(&icon);
     painter.setRenderHint(QPainter::Antialiasing, true);
@@ -294,10 +300,10 @@ bool PointDrawingPlugin::DrawLines()
   bool success = cur_point_.transformed;
   glColor4d(color_.redF(), color_.greenF(), color_.blueF(), 1.0);
   if (draw_style_ == LINES && !points_.empty()) {
-    glLineWidth(3);
+    glLineWidth(DevicePixels(3));
     glBegin(GL_LINE_STRIP);
   } else {
-    glPointSize(6);
+    glPointSize(DevicePixels(6));
     glBegin(GL_POINTS);
   }
 
@@ -351,7 +357,7 @@ bool PointDrawingPlugin::DrawArrow(const StampedPoint & it)
 bool PointDrawingPlugin::DrawArrows()
 {
   bool success = true;
-  glLineWidth(4);
+  glLineWidth(DevicePixels(4));
   glBegin(GL_LINES);
   glColor4d(color_.redF(), color_.greenF(), color_.blueF(), 0.5);
   for (const auto & pt : points_) {
@@ -478,16 +484,16 @@ bool PointDrawingPlugin::DrawLaps()
 {
   bool transformed = !points_.empty();
   glColor4d(color_.redF(), color_.greenF(), color_.blueF(), 0.5);
-  glLineWidth(3);
+  glLineWidth(DevicePixels(3));
   QColor base_color = color_;
 
   for (size_t i = 0; i < laps_.size(); i++) {
     UpdateColor(base_color, static_cast<int>(i));
     if (draw_style_ == LINES) {
-      glLineWidth(3);
+      glLineWidth(DevicePixels(3));
       glBegin(GL_LINE_STRIP);
     } else {
-      glPointSize(6);
+      glPointSize(DevicePixels(6));
       glBegin(GL_POINTS);
     }
 
@@ -502,10 +508,10 @@ bool PointDrawingPlugin::DrawLaps()
   }
 
   if (draw_style_ == LINES) {
-    glLineWidth(3);
+    glLineWidth(DevicePixels(3));
     glBegin(GL_LINE_STRIP);
   } else {
-    glPointSize(6);
+    glPointSize(DevicePixels(6));
     glBegin(GL_POINTS);
   }
 
@@ -542,7 +548,7 @@ void PointDrawingPlugin::UpdateColor(QColor base_color, int i)
 
 void PointDrawingPlugin::DrawCovariance()
 {
-  glLineWidth(4);
+  glLineWidth(DevicePixels(4));
 
   glColor4d(color_.redF(), color_.greenF(), color_.blueF(), 1.0);
 
@@ -586,7 +592,7 @@ bool PointDrawingPlugin::DrawLapsArrows()
 {
   bool success = !laps_.empty() && !points_.empty();
   glColor4d(color_.redF(), color_.greenF(), color_.blueF(), 0.5);
-  glLineWidth(2);
+  glLineWidth(DevicePixels(2));
   QColor base_color = color_;
   if (!laps_.empty()) {
     for (size_t i = 0; i < laps_.size(); i++) {
