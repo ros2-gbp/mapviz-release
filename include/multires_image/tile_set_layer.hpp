@@ -33,9 +33,9 @@
 #include <string>
 #include <vector>
 
-#include <tf2/transform_datatypes.hpp>
 #include "swri_transform_util/georeference.h"
 #include <multires_image/tile.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
 
 namespace multires_image
 {
