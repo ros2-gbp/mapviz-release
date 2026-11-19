@@ -29,20 +29,32 @@
 #include <mapviz_plugins/image_plugin.hpp>
 
 // QT libraries
-#include <QDialog>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QPushButton>
+#include <QSpinBox>
 
 // C++ standard libraries
 #include <cmath>
-#include <cstdio>
+#include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include <image_transport/image_transport.hpp>
+#include <mapviz/status_label.hpp>
 #include <mapviz_plugins/topic_select.hpp>
+#include "opencv2/core/types_c.h"
+#include <opencv2/imgproc.hpp>
+#include "opencv2/imgproc/types_c.h"
+#include "yaml-cpp/yaml.h"
 
 // ROS libraries
 #include <sensor_msgs/image_encodings.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -74,15 +86,7 @@ ImagePlugin::ImagePlugin()
 {
   ui_.setupUi(config_widget_);
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
   QObject::connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
@@ -291,7 +295,7 @@ void ImagePlugin::connectCallback(const std::string & topic, const rmw_qos_profi
     has_message_ = false;
     topic_ = topic;
     qos_ = qos;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     image_sub_.shutdown();
 
@@ -463,7 +467,6 @@ void ImagePlugin::DrawIplImage(cv::Mat * image)
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glDrawPixels(image->cols, image->rows, format, GL_UNSIGNED_BYTE, image->ptr());
   glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-
 
   PrintInfo("OK");
 }
