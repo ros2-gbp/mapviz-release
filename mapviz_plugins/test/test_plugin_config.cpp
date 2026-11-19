@@ -30,12 +30,15 @@
 #include <QApplication>
 #include <QCoreApplication>
 #include <QFont>
+#include <QLabel>
 #include <QOpenGLWidget>
 #include <QString>
 #include <yaml-cpp/yaml.h>
 
 #include <chrono>
+#include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -73,6 +76,10 @@
 #include <mapviz_plugins/speedometer_plugin.hpp>
 #include <mapviz_plugins/string_plugin.hpp>
 #include <mapviz_plugins/textured_marker_plugin.hpp>
+#include "ui_measuring_config.h"  // NOLINT(build/include_subdir)
+#include <mapviz/mapviz_plugin.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+// IWYU pragma: no_include <compare>
 
 namespace
 {

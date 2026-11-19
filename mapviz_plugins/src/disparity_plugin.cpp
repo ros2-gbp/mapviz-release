@@ -29,15 +29,23 @@
 #include <mapviz_plugins/disparity_plugin.hpp>
 
 // QT libraries
-#include <QDialog>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QPushButton>
+#include <QSpinBox>
 
 #include <mapviz_plugins/topic_select.hpp>
 
 // ROS libraries
+#include <mapviz/status_label.hpp>
+#include "opencv2/core/types_c.h"
+#include <opencv2/imgproc.hpp>
+#include "opencv2/imgproc/types_c.h"
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/image_encodings.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include "yaml-cpp/yaml.h"
 
 #ifdef USE_CVBRIDGE_H_FILES
 #include "cv_bridge/cv_bridge.h"
@@ -45,12 +53,12 @@
 #include <cv_bridge/cv_bridge.hpp>
 #endif
 
-
 // C++ standard libraries
 #include <algorithm>
 #include <cstdio>
+#include <functional>
+#include <memory>
 #include <string>
-#include <vector>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -78,15 +86,7 @@ DisparityPlugin::DisparityPlugin()
 {
   ui_.setupUi(config_widget_);
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
   QObject::connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
@@ -207,7 +207,7 @@ void DisparityPlugin::connectCallback(const std::string & topic, const rmw_qos_p
     has_message_ = false;
     topic_ = topic;
     qos_ = qos;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     disparity_sub_.reset();
 
@@ -232,13 +232,13 @@ void DisparityPlugin::handleDisparity(
   }
 
   if (disparity->min_disparity == 0.0 && disparity->max_disparity == 0.0) {
-    PrintError("Min and max disparity not set.");
+    PrintError("Min and max disparity not set");
     has_image_ = false;
     return;
   }
 
   if (disparity->image.encoding != sensor_msgs::image_encodings::TYPE_32FC1) {
-    PrintError("Invalid encoding.");
+    PrintError("Invalid encoding");
     has_image_ = false;
     return;
   }
