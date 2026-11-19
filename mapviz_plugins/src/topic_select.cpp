@@ -28,14 +28,19 @@
 
 #include <mapviz_plugins/topic_select.hpp>
 
-#include <QHBoxLayout>
-#include <QLabel>
 #include <QListWidget>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QSpinBox>
 #include <QTimerEvent>
-#include <QVBoxLayout>
+#include <QAbstractItemView>
+#include <QItemSelectionModel>
+#include <QListWidgetItem>
+#include <QModelIndex>
+#include <QModelIndexList>
+#include <QRadioButton>
+#include <QString>
+#include <Qt>
+#include <QtGlobal>
 
 // *****************************************************************************
 //
@@ -66,13 +71,14 @@
 //
 // *****************************************************************************
 #include <algorithm>
+#include <cstddef>
+#include <functional>
+#include <iterator>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
-
-#include <rclcpp/logging.hpp>
-#include "rmw/qos_profiles.h"
+// IWYU pragma: no_include <compare>
 
 namespace mapviz_plugins
 {
