@@ -30,7 +30,10 @@
 #define TILE_MAP__TILE_MAP_VIEW_HPP_
 
 #include <QOpenGLFunctions_1_1>
+#include <QString>
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,11 +41,13 @@
 #include <tile_map/tile_source.hpp>
 #include <tile_map/texture_cache.hpp>
 #include "swri_transform_util/transform.h"
-#include <rclcpp/logger.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include <tile_map/image_cache.hpp>
 
 namespace tile_map
 {
-class TileSource;
+class TileSource;  // IWYU pragma: keep
 
 struct Tile
 {
@@ -50,6 +55,8 @@ public:
   QString url;
   size_t url_hash;
   int32_t level;
+  int64_t x = 0;
+  int64_t y = 0;
   int32_t subdiv_count;
   double subwidth;
 
@@ -59,7 +66,7 @@ public:
   std::vector<tf2::Vector3> points_t;
 };
 
-class TileMapViewTest;
+class TileMapViewTest;  // IWYU pragma: keep
 
 class TileMapView : protected QOpenGLFunctions_1_1
 {
@@ -70,7 +77,11 @@ class TileMapView : protected QOpenGLFunctions_1_1
   friend class TileMapViewTest;
 
 public:
-  explicit TileMapView(rclcpp::Logger logger = rclcpp::get_logger("tile_map::TileMapView"));
+  /// @param cache_dir Where downloaded tiles are kept on disk.  Views drawing
+  ///   different kinds of tiles should use different directories.
+  explicit TileMapView(
+    rclcpp::Logger logger = rclcpp::get_logger("tile_map::TileMapView"),
+    const QString & cache_dir = "/tmp/tile_map");
 
   bool IsReady();
 
@@ -93,11 +104,30 @@ public:
 
   void Draw();
 
+  /// See TextureCache::SetImageFilter().
+  void SetImageFilter(TextureCache::ImageFilter filter);
+
+  /// Rebuilds every tile's texture from its downloaded image, e.g. after the
+  /// image filter's settings change.
+  void RefreshTextures();
+
+  /// Whether to draw the next coarser level under the current one while its
+  /// tiles load (on by default).  Turn it off for translucent overlays, which
+  /// would otherwise be drawn twice wherever both levels have loaded.
+  void SetDrawPrecache(bool draw_precache) {draw_precache_ = draw_precache;}
+
+  /// The tiles being drawn that have their textures, finer level first.
+  /// The textures stay valid until TextureRevision() changes.
+  std::vector<ImageryTile> DrawnTiles() const;
+
+  /// Changes whenever a drawn tile gets, loses or changes its texture.
+  uint64_t TextureRevision() const {return texture_revision_;}
+
   /// The image cache is created once and outlives every tile source set on
   /// this view, so its signals can be connected a single time.
   ImageCachePtr GetImageCache();
 
-  /// The tile the view is currently centred on, so a source can be probed
+  /// The tile the view is currently centered on, so a source can be probed
   /// without guessing coordinates.  False before the first SetView().
   bool GetCenterTile(int32_t & level, int64_t & x, int64_t & y) const;
 
@@ -124,6 +154,10 @@ private:
   TextureCachePtr tile_cache_;
 
   bool gl_initialized_ = false;
+
+  bool draw_precache_ = true;
+
+  uint64_t texture_revision_ = 1;
 
   rclcpp::Logger logger_;
 
