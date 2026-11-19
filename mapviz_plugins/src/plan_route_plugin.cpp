@@ -30,28 +30,51 @@
 
 // QT libraries
 #include <QDateTime>
-#include <QDialog>
 #include <QOpenGLWidget>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QPalette>
-#include <QStaticText>
+#include <QBrush>
+#include <QCheckBox>
+#include <QColor>
+#include <QEvent>
+#include <QFont>
+#include <QLineEdit>
+#include <QLineF>
+#include <QOpenGLFunctions>
+#include <QPen>
+#include <QPushButton>
+#include <QRectF>
+#include <QSizeF>
+#include <QString>
+#include <Qt>
 
 // C++ standard libraries
 #include <chrono>
 #include <cstdio>
+#include <functional>
+#include <future>
 #include <limits>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <mapviz/qt_mouse_event_compat.hpp>
+#include <mapviz_plugins/default_colors.hpp>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
 #include "swri_route_util/util.h"
 #include "swri_transform_util/frames.h"
 #include <marti_nav_msgs/srv/plan_route.hpp>
+#include "swri_route_util/route.h"
+#include "swri_route_util/route_point.h"
+#include "swri_route_util/route_point_inline.h"
+#include "swri_transform_util/transform.h"
+#include "swri_transform_util/transform_manager.h"
+#include "yaml-cpp/yaml.h"
+#include <mapviz/color_button.hpp>
+#include <mapviz/status_label.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -80,15 +103,8 @@ PlanRoutePlugin::PlanRoutePlugin()
 {
   ui_.setupUi(config_widget_);
 
-  ui_.color->setColor(Qt::green);
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  ui_.color->setColor(DefaultDrawColor());
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
   QObject::connect(
     ui_.service, SIGNAL(editingFinished()), this,
     SLOT(PlanRoute()));
@@ -142,7 +158,7 @@ void PlanRoutePlugin::PublishRoute()
     // publisher there is nothing to publish to.
     route_pub_.reset();
     route_topic_.clear();
-    PrintError("Route topic may not be empty.");
+    PrintError("Route topic may not be empty");
     return;
   }
 
@@ -175,7 +191,7 @@ void PlanRoutePlugin::PlanRoute()
 
   std::string service = ui_.service->text().toStdString();
   if (service.empty()) {
-    PrintError("Service name may not be empty.");
+    PrintError("Service name may not be empty");
     return;
   }
   if (!plan_route_client_ || plan_route_client_->get_service_name() != service) {
@@ -191,7 +207,7 @@ void PlanRoutePlugin::PlanRoute()
   client->wait_for_service(1ms);
 
   if (!client->service_is_ready()) {
-    PrintError("Service is unavailable.");
+    PrintError("Service is unavailable");
     return;
   }
 
@@ -425,7 +441,7 @@ void PlanRoutePlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
         sru::Route route = *route_preview_;
         sru::transform(route, transform, target_frame_);
 
-        glLineWidth(2);
+        glLineWidth(DevicePixels(2));
         const QColor color = ui_.color->color();
         glColor4d(color.redF(), color.greenF(), color.blueF(), 1.0);
         glBegin(GL_LINE_STRIP);
@@ -440,7 +456,7 @@ void PlanRoutePlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
 
     // Draw waypoints
 
-    glPointSize(20);
+    glPointSize(DevicePixels(20));
     glColor4f(0.0, 1.0, 1.0, 1.0);
     glBegin(GL_POINTS);
 
@@ -451,7 +467,7 @@ void PlanRoutePlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
     }
     glEnd();
   } else {
-    PrintError("Failed to transform.");
+    PrintError("Failed to transform");
   }
 }
 

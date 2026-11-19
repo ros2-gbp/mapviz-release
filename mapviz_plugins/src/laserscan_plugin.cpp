@@ -29,21 +29,39 @@
 #include <mapviz_plugins/laserscan_plugin.hpp>
 
 // QT libraries
-#include <QDialog>
+#include <QCheckBox>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QPainter>
+#include <QPen>
+#include <QPixmap>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QString>
+#include <QVariant>
+#include <Qt>
 
 // C++ standard libraries
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <deque>
+#include <functional>
+#include <memory>
 #include <string>
 
 #include <mapviz_plugins/topic_select.hpp>
 
 // ROS libraries
+#include <mapviz/color_button.hpp>
+#include <mapviz/status_label.hpp>
+#include <mapviz/widgets.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include "swri_transform_util/transform.h"
+#include "yaml-cpp/yaml.h"
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -70,15 +88,7 @@ LaserScanPlugin::LaserScanPlugin()
 {
   ui_.setupUi(config_widget_);
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   // Initialize color selector colors
   ui_.min_color->setColor(Qt::white);
@@ -179,8 +189,7 @@ void LaserScanPlugin::ClearHistory()
 void LaserScanPlugin::DrawIcon()
 {
   if (icon_) {
-    QPixmap icon(16, 16);
-    icon.fill(Qt::transparent);
+    QPixmap icon = mapviz::IconWidget::CreatePixmap();
 
     QPainter painter(&icon);
     painter.setRenderHint(QPainter::Antialiasing, true);
@@ -289,7 +298,7 @@ void LaserScanPlugin::connectCallback(const std::string & topic, const rmw_qos_p
     initialized_ = false;
     scans_.clear();
     has_message_ = false;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     laserscan_sub_.reset();
 
@@ -374,7 +383,6 @@ bool LaserScanPlugin::GetScanTransform(
   this->use_latest_transforms_ = was_using_latest_transforms;
   return has_tranform;
 }
-
 
 void LaserScanPlugin::handleLaserScan(const sensor_msgs::msg::LaserScan::ConstSharedPtr msg)
 {
@@ -467,7 +475,7 @@ bool LaserScanPlugin::Initialize(QOpenGLWidget * canvas)
 
 void LaserScanPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
 {
-  glPointSize(point_size_);
+  glPointSize(DevicePixels(point_size_));
   glBegin(GL_POINTS);
 
   std::deque<Scan>::const_iterator scan_it = scans_.begin();
