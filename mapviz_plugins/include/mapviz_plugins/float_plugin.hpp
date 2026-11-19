@@ -33,7 +33,6 @@
 #include <QString>
 #include <QColor>
 #include <QWidget>
-#include <QOpenGLWidget>
 #include <QPainter>
 #include <QFont>
 #include <QStaticText>
@@ -166,6 +165,5 @@ private:
   static const char * POSTFIX_KEY;
 };
 }  // namespace mapviz_plugins
-
 
 #endif  // MAPVIZ_PLUGINS__FLOAT_PLUGIN_HPP_
