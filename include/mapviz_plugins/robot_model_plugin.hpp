@@ -49,7 +49,6 @@
 #include <mapviz/mapviz_plugin.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <tf2/LinearMath/Transform.hpp>
 #include <tf2/LinearMath/Vector3.hpp>
 #include "ui_robot_model_config.h"  // NOLINT(build/include_subdir)
 
@@ -173,6 +172,5 @@ private:
 };
 
 }  // namespace mapviz_plugins
-
 
 #endif  // MAPVIZ_PLUGINS__ROBOT_MODEL_PLUGIN_HPP_
