@@ -30,14 +30,17 @@
 #include <QCoreApplication>
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include "swri_transform_util/local_xy_util.h"
 #include "swri_transform_util/transform.h"
 #include "swri_transform_util/wgs84_transformer.h"
+#include <tf2/LinearMath/Vector3.hpp>
 #include <tile_map/tile_map_view.hpp>
 #include <tile_map/wmts_source.hpp>
 
@@ -219,6 +222,50 @@ TEST_F(TileMapViewTest, SubdividedTileCoversExactlyOneTile)
     EXPECT_NEAR(longitude(x + 1), tile.points.back().x(), 1e-9);
     EXPECT_NEAR(latitude(y + 1), tile.points.back().y(), 1e-9);
   }
+}
+
+TEST_F(TileMapViewTest, ReportsWhenItsTexturesMayHaveChanged)
+{
+  // 2.5D rendering records these textures in a display list, so anything
+  // that can change or free them has to change the revision.
+  TileMapView view;
+  uint64_t revision = view.TextureRevision();
+
+  view.SetTileSource(
+    std::make_shared<tile_map::WmtsSource>(
+      "test", "file:///nonexistent/{level}/{x}/{y}.png", true, 20));
+  EXPECT_NE(revision, view.TextureRevision());
+  revision = view.TextureRevision();
+
+  view.SetView(29.45, -98.61, 0.5, 800, 600);
+  EXPECT_NE(revision, view.TextureRevision());
+  revision = view.TextureRevision();
+
+  // The same view again leaves the tiles alone.
+  view.SetView(29.45, -98.61, 0.5, 800, 600);
+  EXPECT_EQ(revision, view.TextureRevision());
+
+  view.RefreshTextures();
+  EXPECT_NE(revision, view.TextureRevision());
+  revision = view.TextureRevision();
+
+  view.ResetCache();
+  EXPECT_NE(revision, view.TextureRevision());
+
+  // Nothing has loaded, so nothing is drawn with a texture yet.
+  EXPECT_TRUE(view.DrawnTiles().empty());
+}
+
+TEST_F(TileMapViewTest, TilesKnowWhereTheyAre)
+{
+  TileMapView view;
+  view.SetTileSource(
+    std::make_shared<tile_map::WmtsSource>(
+      "test", "file:///nonexistent/{level}/{x}/{y}.png", true, 20));
+  const tile_map::Tile tile = InitializeTile(view, 17, 29622, 54308);
+  EXPECT_EQ(17, tile.level);
+  EXPECT_EQ(29622, tile.x);
+  EXPECT_EQ(54308, tile.y);
 }
 
 int main(int argc, char ** argv)
