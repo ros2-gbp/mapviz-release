@@ -29,12 +29,10 @@
 #ifndef MAPVIZ_PLUGINS__STRING_PLUGIN_HPP_
 #define MAPVIZ_PLUGINS__STRING_PLUGIN_HPP_
 
-
 #include <QObject>
 #include <QString>
 #include <QColor>
 #include <QWidget>
-#include <QOpenGLWidget>
 #include <QPainter>
 #include <QFont>
 #include <QStaticText>
@@ -157,6 +155,5 @@ private:
   static const char * UNITS_KEY;
 };
 }  // namespace mapviz_plugins
-
 
 #endif   // MAPVIZ_PLUGINS__STRING_PLUGIN_HPP_
