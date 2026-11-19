@@ -29,15 +29,37 @@
 #include <mapviz_plugins/occupancy_grid_plugin.hpp>
 
 // QT libraries
+#include <QCheckBox>
+#include <QColor>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
-#include <QPalette>
+#include <QPainter>
+#include <QPen>
+#include <QPixmap>
+#include <QPushButton>
+#include <Qt>
 
 // C++ standard libraries
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <cstring>
+#include <functional>
 #include <string>
 #include <vector>
 
+#include <mapviz/status_label.hpp>
+#include <mapviz/widgets.hpp>
 #include <mapviz_plugins/topic_select.hpp>
+#include "swri_transform_util/transform.h"
+#include <tf2/LinearMath/Matrix3x3.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Scalar.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include "yaml-cpp/yaml.h"
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -153,15 +175,7 @@ OccupancyGridPlugin::OccupancyGridPlugin()
 {
   ui_.setupUi(config_widget_);
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(ui_.select_grid, SIGNAL(clicked()), this, SLOT(SelectTopicGrid()));
 
@@ -191,8 +205,7 @@ OccupancyGridPlugin::OccupancyGridPlugin()
 void OccupancyGridPlugin::DrawIcon()
 {
   if (icon_) {
-    QPixmap icon(16, 16);
-    icon.fill(Qt::transparent);
+    QPixmap icon = mapviz::IconWidget::CreatePixmap();
 
     QPainter painter(&icon);
     painter.setRenderHint(QPainter::Antialiasing, true);
