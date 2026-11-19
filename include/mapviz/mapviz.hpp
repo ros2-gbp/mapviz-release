@@ -30,22 +30,30 @@
 #define MAPVIZ__MAPVIZ_HPP_
 
 // QT libraries
-#include <QtGui/QtGui>
-#include <QDialog>
+#include <QtGui/QtGui>  // IWYU pragma: keep
+#include <QDialog>  // IWYU pragma: keep
 #include <QMenu>
 #include <QTimer>
 #include <QString>
-#include <QShowEvent>
-#include <QCloseEvent>
+#include <QShowEvent>  // IWYU pragma: keep
+#include <QCloseEvent>  // IWYU pragma: keep
 #include <QListWidgetItem>
-#include <QModelIndex>
+#include <QModelIndex>  // IWYU pragma: keep
 #include <QColor>
 #include <QToolButton>
 #include <QWidget>
-#include <QStringList>
+#include <QStringList>  // IWYU pragma: keep
 #include <QMainWindow>
-#include <QShortcut>
-#include <yaml-cpp/yaml.h>
+#include <QShortcut>  // IWYU pragma: keep
+#include <QAction>
+#include <QEvent>  // IWYU pragma: keep
+#include <QImage>
+#include <QLabel>
+#include <QObject>
+#include <QPushButton>
+#include <QThread>
+#include <Qt>
+#include <yaml-cpp/yaml.h>  // IWYU pragma: keep
 
 // C++ standard libraries
 #include <atomic>
@@ -54,7 +62,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
+#include <vector>  // IWYU pragma: keep
 
 #include "swri_transform_util/transform_manager.h"
 #include <mapviz_interfaces/srv/add_mapviz_display.hpp>  // Service
@@ -64,15 +72,15 @@
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
-#include "rclcpp/version.h"
+#include "rclcpp/version.h"  // IWYU pragma: keep
 #include <pluginlib/class_loader.hpp>
 #include <tf2_ros/buffer.hpp>
 #include <tf2_ros/transform_listener.hpp>
-#include <std_srvs/srv/empty.hpp>
+#include <std_srvs/srv/empty.hpp>  // IWYU pragma: keep
 
 // Auto-generated UI files
 #include "ui/ui_mapviz.h"
-#include "ui/ui_pluginselect.h"
+#include "ui/ui_pluginselect.h"  // IWYU pragma: keep
 #include "mapviz/stopwatch.hpp"
 
 namespace mapviz
@@ -172,6 +180,17 @@ protected:
   virtual void showEvent(QShowEvent * event);
   virtual void closeEvent(QCloseEvent * event);
   bool eventFilter(QObject * object, QEvent * event) override;
+  bool event(QEvent * event) override;
+
+  // Sizes that follow the font or the display scale (the small icon buttons,
+  // the theme's style sheet, header icons and chevrons) are computed once and
+  // have to be recomputed when either changes: mapviz moving to a monitor
+  // with a different scale factor, a monitor being added or removed, or the
+  // system font changing.  Requests are coalesced into one refresh.
+  void SizeToolButtons();
+  int PinnedPanelMinimumWidth() const;
+  void ScheduleAppearanceRefresh();
+  void RefreshScaledAppearance();
 
   static const QString ROS_WORKSPACE_VAR;
   static const QString MAPVIZ_CONFIG_FILE;
@@ -252,6 +271,9 @@ protected:
   int pinned_panel_width_;
 
   Stopwatch meas_spin_;
+
+  bool appearance_refresh_pending_ = false;
+  bool screen_signals_connected_ = false;
 };
 }   // namespace mapviz
 
