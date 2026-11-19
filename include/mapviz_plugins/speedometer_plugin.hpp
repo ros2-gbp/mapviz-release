@@ -31,6 +31,8 @@
 
 // QT libraries
 #include <QObject>
+#include <QPainter>
+#include <QRectF>
 #include <QWidget>
 
 // C++ standard libraries
@@ -105,7 +107,7 @@ private:
   rmw_qos_profile_t qos_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
 
-  /// Magnitude of the most recent twist, in metres per second.
+  /// Magnitude of the most recent twist, in meters per second.
   double speed_;
   bool has_message_;
 
