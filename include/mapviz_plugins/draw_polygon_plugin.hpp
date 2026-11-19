@@ -31,19 +31,21 @@
 
 // QT libraries
 #include <QOpenGLFunctions_1_1>
-#include <QOpenGLWidget>
 #include <QObject>
 #include <QWidget>
+#include <QMouseEvent>
+#include <QPointF>
+#include <QtGlobal>
 
 // C++ standard libraries
 #include <string>
 #include <vector>
 
 #include <mapviz/mapviz_plugin.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
-#include <tf2/transform_datatypes.hpp>
 
 // Mapviz libraries
 #include <mapviz/map_canvas.hpp>

@@ -30,12 +30,11 @@
 
 #include <cmath>
 #include <limits>
+#include <string>
 
 #include <gps_msgs/msg/gps_fix.hpp>
-#include <gps_msgs/msg/gps_status.hpp>
 #include <mapviz_plugins/has_position.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <sensor_msgs/msg/nav_sat_status.hpp>
 
 namespace
 {
