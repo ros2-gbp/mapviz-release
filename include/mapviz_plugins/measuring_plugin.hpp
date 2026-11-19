@@ -30,16 +30,23 @@
 #define MAPVIZ_PLUGINS__MEASURING_PLUGIN_HPP_
 
 // QT libraries
+#include <QMouseEvent>
+#include <QObject>
 #include <QOpenGLFunctions_1_1>
+#include <QPointF>
+#include <QRectF>
+#include <QString>
+#include <QWidget>
+#include <QtGlobal>
 
 // C++ libraries
 #include <string>
 #include <vector>
 
 #include <mapviz/mapviz_plugin.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
 
 // ROS Libraries
-#include <rclcpp/rclcpp.hpp>
 
 // Mapviz libraries
 #include <mapviz/map_canvas.hpp>
@@ -49,7 +56,7 @@
 
 namespace mapviz_plugins
 {
-class MeasuringPluginTest;
+class MeasuringPluginTest;  // IWYU pragma: keep
 
 class MeasuringPlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 {
