@@ -31,13 +31,20 @@
 // QT libraries
 #include <QApplication>
 #include <QEvent>
+#include <Qt>
 
 // C++ standard libraries
 #include <cstdlib>
 #include <algorithm>
 #include <iostream>
 #include <exception>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <utility>
 
+#include <multires_image/tile.hpp>
+#include <multires_image/tile_set.hpp>
 #include <multires_image/tile_set_layer.hpp>
 
 namespace multires_image

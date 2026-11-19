@@ -29,22 +29,35 @@
 #include <mapviz_plugins/navsat_plugin.hpp>
 
 // QT libraries
-#include <QDialog>
+#include <QColor>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
 #include <QOpenGLWidget>
-#include <QPalette>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QString>
 
 // C++ standard libraries
-#include <cstdio>
+#include <functional>
+#include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
+#include <mapviz/color_button.hpp>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/status_label.hpp>
+#include <mapviz_plugins/default_colors.hpp>
 #include <mapviz_plugins/has_position.hpp>
+#include <mapviz_plugins/point_drawing_plugin.hpp>
 #include <mapviz_plugins/topic_select.hpp>
-#include <opencv2/core/core.hpp>
+#include "swri_transform_util/local_xy_util.h"
+#include "swri_transform_util/transform_manager.h"
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include "yaml-cpp/yaml.h"
 
 // ROS libraries
-#include "swri_transform_util/transform_util.h"
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -63,17 +76,9 @@ NavSatPlugin::NavSatPlugin()
 {
   ui_.setupUi(config_widget_);
 
-  ui_.color->setColor(Qt::green);
+  ui_.color->setColor(DefaultDrawColor());
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(
     ui_.selecttopic, SIGNAL(clicked()), this,
@@ -123,7 +128,7 @@ void NavSatPlugin::connectCallback(const std::string & topic, const rmw_qos_prof
     initialized_ = false;
     ClearPoints();
     has_message_ = false;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     navsat_sub_.reset();
     topic_ = topic;
@@ -139,7 +144,6 @@ void NavSatPlugin::connectCallback(const std::string & topic, const rmw_qos_prof
     }
   }
 }
-
 
 void NavSatPlugin::handleNavSatFix(const sensor_msgs::msg::NavSatFix::ConstSharedPtr navsat)
 {
