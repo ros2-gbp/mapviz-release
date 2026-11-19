@@ -29,24 +29,48 @@
 #include <mapviz_plugins/odometry_plugin.hpp>
 
 // QT libraries
-#include <QDialog>
+#include <QBrush>
+#include <QCheckBox>
+#include <QColor>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QFont>
+#include <QLineEdit>
 #include <QOpenGLWidget>
 #include <QPainter>
-#include <QPalette>
+#include <QPen>
+#include <QPointF>
+#include <QPushButton>
+#include <QSlider>
+#include <QSpinBox>
+#include <QString>
+#include <QTransform>
 
 // C++ standard libraries
-#include <cstdio>
+#include <cstdint>
+#include <deque>
+#include <functional>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include <mapviz_plugins/default_colors.hpp>
 #include <mapviz_plugins/topic_select.hpp>
-#include <opencv2/core/core.hpp>
 
 // ROS libraries
+#include <mapviz/color_button.hpp>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/status_label.hpp>
+#include <mapviz_plugins/point_drawing_plugin.hpp>
+#include <opencv2/core.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include "swri_image_util/geometry_util.h"
 #include "swri_transform_util/transform_util.h"
+#include <tf2/LinearMath/Matrix3x3.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include "yaml-cpp/yaml.h"
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -64,17 +88,9 @@ OdometryPlugin::OdometryPlugin()
   has_message_(false)
 {
   ui_.setupUi(config_widget_);
-  ui_.color->setColor(Qt::green);
+  ui_.color->setColor(DefaultDrawColor());
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(
     ui_.selecttopic, SIGNAL(clicked()), this,
@@ -138,7 +154,7 @@ void OdometryPlugin::connectCallback(const std::string & topic, const rmw_qos_pr
     initialized_ = false;
     ClearPoints();
     has_message_ = false;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     odometry_sub_.reset();
 
