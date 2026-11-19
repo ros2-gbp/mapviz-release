@@ -29,16 +29,26 @@
 #include <mapviz_plugins/path_plugin.hpp>
 
 // QT libraries
-#include <QDialog>
+#include <QColor>
+#include <QLineEdit>
 #include <QOpenGLWidget>
+#include <QPushButton>
+#include <QString>
 
 // C++ standard libraries
-#include <cstdio>
+#include <functional>
+#include <memory>
 #include <string>
-#include <utility>
-#include <vector>
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <mapviz/color_button.hpp>
+#include <mapviz/mapviz_plugin.hpp>
+#include <mapviz/status_label.hpp>
+#include <mapviz_plugins/default_colors.hpp>
+#include <mapviz_plugins/point_drawing_plugin.hpp>
 #include <mapviz_plugins/topic_select.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include "yaml-cpp/yaml.h"
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
@@ -59,17 +69,9 @@ PathPlugin::PathPlugin()
   has_message_(false)
 {
   ui_.setupUi(config_widget_);
-  ui_.path_color->setColor(Qt::green);
+  ui_.path_color->setColor(DefaultDrawColor());
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
   connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
@@ -105,7 +107,7 @@ void PathPlugin::connectCallback(const std::string & topic, const rmw_qos_profil
     initialized_ = false;
     ClearPoints();
     has_message_ = false;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     path_sub_.reset();
 
@@ -121,7 +123,6 @@ void PathPlugin::connectCallback(const std::string & topic, const rmw_qos_profil
     }
   }
 }
-
 
 void PathPlugin::handlePath(const nav_msgs::msg::Path::ConstSharedPtr path)
 {
@@ -172,6 +173,9 @@ bool PathPlugin::Initialize(QOpenGLWidget * canvas)
   canvas->makeCurrent();
   initializeOpenGLFunctions();
   canvas->doneCurrent();
+  // The icon is drawn in the base class's color, which otherwise only follows
+  // the color button once the user edits it.
+  SetColor(ui_.path_color->color());
   DrawIcon();
   return true;
 }
