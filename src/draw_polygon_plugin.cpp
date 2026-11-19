@@ -30,13 +30,20 @@
 
 // QT libraries
 #include <QDateTime>
-#include <QDialog>
 #include <QOpenGLWidget>
 #include <QMouseEvent>
-#include <QPalette>
+#include <QColor>
+#include <QEvent>
+#include <QLineEdit>
+#include <QLineF>
+#include <QOpenGLFunctions>
+#include <QPushButton>
+#include <QString>
+#include <Qt>
 
 // C++ standard libraries
 #include <cstdio>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <string>
@@ -46,6 +53,12 @@
 #include <geometry_msgs/msg/polygon_stamped.hpp>
 #include <mapviz/select_frame_dialog.hpp>
 #include <mapviz/qt_mouse_event_compat.hpp>
+#include <mapviz_plugins/default_colors.hpp>
+#include "swri_transform_util/transform.h"
+#include "swri_transform_util/transform_manager.h"
+#include "yaml-cpp/yaml.h"
+#include <mapviz/color_button.hpp>
+#include <mapviz/status_label.hpp>
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -69,15 +82,8 @@ DrawPolygonPlugin::DrawPolygonPlugin()
 {
   ui_.setupUi(config_widget_);
 
-  ui_.color->setColor(Qt::green);
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  ui_.color->setColor(DefaultDrawColor());
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(
     ui_.selectframe, SIGNAL(clicked()), this,
@@ -112,7 +118,7 @@ void DrawPolygonPlugin::SelectFrame()
 void DrawPolygonPlugin::FrameEdited()
 {
   source_frame_ = ui_.frame->text().toStdString();
-  PrintWarning("Waiting for transform.");
+  PrintWarning("Waiting for transform");
 
   RCLCPP_INFO(Logger(), "Setting target frame to to %s", source_frame_.c_str());
 
@@ -343,7 +349,7 @@ void DrawPolygonPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
     transformed_vertices_[i] = transform * vertices_[i];
   }
 
-  glLineWidth(1);
+  glLineWidth(DevicePixels(1));
   const QColor color = ui_.color->color();
   glColor4d(color.redF(), color.greenF(), color.blueF(), 1.0);
   glBegin(GL_LINE_STRIP);
@@ -366,14 +372,13 @@ void DrawPolygonPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
   glEnd();
 
   // Draw vertices
-  glPointSize(9);
+  glPointSize(DevicePixels(9));
   glBegin(GL_POINTS);
 
   for (const auto & vertex : transformed_vertices_) {
     glVertex2d(vertex.x(), vertex.y());
   }
   glEnd();
-
 
   PrintInfo("OK");
 }

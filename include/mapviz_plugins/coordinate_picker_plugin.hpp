@@ -29,13 +29,16 @@
 #ifndef MAPVIZ_PLUGINS__COORDINATE_PICKER_PLUGIN_HPP_
 #define MAPVIZ_PLUGINS__COORDINATE_PICKER_PLUGIN_HPP_
 
+#include <QMouseEvent>
+#include <QObject>
+#include <QWidget>
+
 // C++ Standard Libraries
 #include <string>
 
 #include <mapviz/mapviz_plugin.hpp>
 
 // ROS Libraries
-#include <rclcpp/rclcpp.hpp>
 
 // Mapviz libraries
 #include <mapviz/map_canvas.hpp>
