@@ -33,7 +33,12 @@
 
 // C++ standard libraries
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <sstream>
+
+#include <multires_image/tile.hpp>
+#include "swri_transform_util/georeference.h"
 
 namespace multires_image
 {
