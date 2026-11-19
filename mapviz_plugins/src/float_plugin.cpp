@@ -28,11 +28,29 @@
 
 #include <mapviz_plugins/float_plugin.hpp>
 
+#include <QBrush>
+#include <QComboBox>
 #include <QFontDialog>
+#include <QLineEdit>
+#include <QOpenGLWidget>
+#include <QPen>
+#include <QPoint>
+#include <QPushButton>
+#include <QSizeF>
+#include <QSpinBox>
+#include <QTransform>
+#include <Qt>
 
+#include <functional>
+#include <memory>
+
+#include <mapviz/color_button.hpp>
 #include <mapviz/qt_font_compat.hpp>
+#include <mapviz/status_label.hpp>
 #include <mapviz_plugins/topic_select.hpp>
+#include <mapviz_plugins/topic_type_watcher.hpp>
 #include <pluginlib/class_list_macros.hpp>
+#include "yaml-cpp/yaml.h"
 
 PLUGINLIB_EXPORT_CLASS(mapviz_plugins::FloatPlugin, mapviz::MapvizPlugin)
 
@@ -63,15 +81,8 @@ FloatPlugin::FloatPlugin()
   color_(Qt::black)
 {
   ui_.setupUi(config_widget_);
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
 
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   QObject::connect(ui_.selecttopic, SIGNAL(clicked()), this, SLOT(SelectTopic()));
   QObject::connect(ui_.topic, SIGNAL(editingFinished()), this, SLOT(TopicEdited()));
@@ -128,7 +139,7 @@ void FloatPlugin::Paint(QPainter * painter, double, double, double)
     painter->restore();
     PrintInfo("OK");
   } else {
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
   }
 }
 
@@ -330,7 +341,7 @@ void FloatPlugin::connectCallback(const std::string & topic, const rmw_qos_profi
   if ((topic != topic_) || !qosEqual(qos, qos_)) {
     initialized_ = false;
     has_message_ = false;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     float32_sub_.reset();
     float64_sub_.reset();

@@ -28,13 +28,25 @@
 
 #include <mapviz_plugins/point_click_publisher_plugin.hpp>
 
+#include <QComboBox>
+#include <QLineEdit>
+#include <QOpenGLWidget>
+
 // C++ Standard Libraries
+#include <cstddef>
+#include <functional>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
+#include <mapviz_plugins/canvas_click_filter.hpp>
 #include "swri_transform_util/frames.h"
-#include <tf2/transform_datatypes.hpp>
+#include "swri_transform_util/transform.h"
+#include "swri_transform_util/transform_manager.h"
+#include <tf2/LinearMath/Vector3.hpp>
+#include <tf2_ros/buffer.hpp>
+#include "yaml-cpp/yaml.h"
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -74,7 +86,7 @@ bool PointClickPublisherPlugin::Initialize(QOpenGLWidget * canvas)
   canvas_ = dynamic_cast<mapviz::MapCanvas *>(canvas);
   canvas_->installEventFilter(&click_filter_);
 
-  PrintInfo("Ready.");
+  PrintInfo("Ready");
 
   return true;
 }
@@ -113,7 +125,6 @@ QWidget * PointClickPublisherPlugin::GetConfigWidget(QWidget * parent)
 
   return config_widget_;
 }
-
 
 void PointClickPublisherPlugin::pointClicked(const QPointF & point)
 {
@@ -182,7 +193,6 @@ void PointClickPublisherPlugin::PrintWarning(const std::string & message)
 {
   PrintWarningHelper(ui_.status, message);
 }
-
 
 void PointClickPublisherPlugin::topicChanged(const QString & topic)
 {
