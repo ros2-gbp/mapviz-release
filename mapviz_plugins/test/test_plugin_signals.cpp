@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 #include <QApplication>
 #include <QOpenGLWidget>
+#include <QString>
 #include <QtGlobal>
 #include <yaml-cpp/yaml.h>
 
@@ -65,6 +66,7 @@
 #include <mapviz_plugins/string_plugin.hpp>
 #include <mapviz_plugins/textured_marker_plugin.hpp>
 #include <mapviz_plugins/tf_frame_plugin.hpp>
+#include <mapviz/mapviz_plugin.hpp>
 
 namespace
 {

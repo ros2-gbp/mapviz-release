@@ -26,9 +26,14 @@
 //
 // *****************************************************************************
 #include <gtest/gtest.h>
+#include <QByteArray>
+#include <QList>
 #include <QMetaMethod>
 #include <QMetaObject>
 #include <QMetaType>
+#include <QtGlobal>
+
+#include <string>
 
 #include <multires_image/QGLMap.hpp>
 #include <multires_image/tile_cache.hpp>
