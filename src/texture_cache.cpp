@@ -29,11 +29,17 @@
 #include <tile_map/texture_cache.hpp>
 
 #include <QImage>
+#include <Qt>
+#include <QtGlobal>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <string>
+#include <utility>
 
-#include <rclcpp/logging.hpp>
 #include "swri_math_util/math_util.h"
+#include <tile_map/image_cache.hpp>
 
 namespace tile_map
 {
@@ -79,7 +85,10 @@ TexturePtr TextureCache::GetTexture(
         // All of the OpenGL calls need to occur on the main thread and so
         // can't be done in the background.  The QImage calls could
         // potentially be done in a background thread by the image cache.
-        QImage qimage = *image_ptr;
+        QImage qimage = image_filter_ ? image_filter_(*image_ptr, url) : *image_ptr;
+        if (qimage.isNull()) {
+          return texture;
+        }
 
         float max_dim = std::max(qimage.width(), qimage.height());
         int32_t dimension = swri_math_util::Round(
@@ -131,6 +140,16 @@ void TextureCache::AddTexture(const TexturePtr & texture)
     TexturePtr * texture_ptr = new TexturePtr(texture);
     cache_.insert(texture->url_hash, texture_ptr);
   }
+}
+
+void TextureCache::SetImageFilter(ImageFilter filter)
+{
+  image_filter_ = std::move(filter);
+}
+
+void TextureCache::ClearTextures()
+{
+  cache_.clear();
 }
 
 void TextureCache::IncrementFrame()
