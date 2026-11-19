@@ -26,12 +26,16 @@
 //
 // *****************************************************************************
 
-
 #include <mapviz/map_canvas.hpp>
 
-#include <QOpenGLContext>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QOpenGLFunctions>
 #include <QPainter>
+#include <QPoint>
 #include <QSurfaceFormat>
+#include <QWheelEvent>
+#include <QtGlobal>
 
 // C++ standard libraries
 #include <algorithm>
@@ -40,10 +44,17 @@
 #include <memory>
 #include <string>
 
+#include <geometry_msgs/msg/point_stamped.hpp>
+#include <mapviz/mapviz_plugin.hpp>
 #include <mapviz/qt_mouse_event_compat.hpp>
-#include "geometry_msgs/msg/point.h"
+#include <rclcpp/rclcpp.hpp>
 #include "swri_math_util/constants.h"
-
+#include <tf2/LinearMath/Matrix3x3.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
+#include <tf2/exceptions.hpp>
+#include <tf2/time.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 namespace mapviz
 {
@@ -140,7 +151,6 @@ MapCanvas::MapCanvas(QWidget * parent)
   setFormat(CreateMapCanvasFormat(enable_antialiasing_));
   setMouseTracking(true);
 
-
   QObject::connect(&frame_rate_timer_, SIGNAL(timeout()), this, SLOT(update()));
   setFrameRate(50.0);
   frame_rate_timer_.start();
@@ -216,8 +226,8 @@ void MapCanvas::paintGL()
 
   TransformTarget(&p);
 
-  // Draw test pattern
-  glLineWidth(3);
+  // Draw test pattern.  Line widths are in device pixels.
+  glLineWidth(static_cast<GLfloat>(3 * devicePixelRatioF()));
   glBegin(GL_LINES);
   // Red line to the right
   glColor3f(1, 0, 0);

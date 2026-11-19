@@ -28,10 +28,16 @@
 
 #include <gtest/gtest.h>
 #include <QApplication>
+#include <QCheckBox>
 #include <QCoreApplication>
+#include <QLabel>
+#include <QLineEdit>
+#include <QString>
 
 #include <chrono>
+#include <cstddef>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -43,6 +49,9 @@
 #include <marti_nav_msgs/srv/plan_route.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <mapviz_plugins/plan_route_plugin.hpp>
+#include "ui_plan_route_config.h"  // NOLINT(build/include_subdir)
+#include <marti_nav_msgs/msg/route_point.hpp>
+// IWYU pragma: no_include <compare>
 
 using marti_nav_msgs::srv::PlanRoute;
 
@@ -259,11 +268,11 @@ TEST_F(PlanRoutePluginTest, RefusesToPublishWithoutATopic)
   // through a null pointer (#918).
   SetTopic("");
   EXPECT_NO_THROW(Publish());
-  EXPECT_EQ("Route topic may not be empty.", Status());
+  EXPECT_EQ("Route topic may not be empty", Status());
 
   SetTopic("   ");
   EXPECT_NO_THROW(Publish());
-  EXPECT_EQ("Route topic may not be empty.", Status());
+  EXPECT_EQ("Route topic may not be empty", Status());
 }
 
 TEST_F(PlanRoutePluginTest, ReportsAnUnavailableService)
@@ -272,7 +281,7 @@ TEST_F(PlanRoutePluginTest, ReportsAnUnavailableService)
 
   Plan(Waypoints(2));
 
-  EXPECT_EQ("Service is unavailable.", Status());
+  EXPECT_EQ("Service is unavailable", Status());
   EXPECT_FALSE(HasPreview());
 }
 
@@ -283,7 +292,7 @@ TEST_F(PlanRoutePluginTest, ReportsAFailedPlan)
 
   Plan(Waypoints(2));
 
-  ASSERT_TRUE(WaitFor([this]() {return Status() == "No route between the waypoints.";}))
+  ASSERT_TRUE(WaitFor([this]() {return Status() == "No route between the waypoints";}))
     << "status: " << Status();
   EXPECT_FALSE(HasPreview());
 
