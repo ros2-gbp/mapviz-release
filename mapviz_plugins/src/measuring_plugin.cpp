@@ -33,21 +33,38 @@
 #include <QMouseEvent>
 #include <QTextStream>
 #include <QPainter>
-#include <QGuiApplication>
+#include <QBrush>
+#include <QCheckBox>
+#include <QColor>
+#include <QDoubleSpinBox>
+#include <QEvent>
+#include <QFont>
+#include <QLabel>
+#include <QLineF>
+#include <QOpenGLFunctions>
+#include <QOpenGLWidget>
+#include <QPen>
+#include <QPushButton>
+#include <QSpinBox>
+#include <QTransform>
+#include <Qt>
 
 // C++ Libraries
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <string>
 #include <vector>
 
+#include <mapviz/color_button.hpp>
 #include <mapviz/mapviz_plugin.hpp>
 #include <mapviz/qt_mouse_event_compat.hpp>
+#include "yaml-cpp/yaml.h"
 
 // ROS Libraries
 #include <rclcpp/rclcpp.hpp>
 
 // Mapviz Libraries
-#include <mapviz/select_frame_dialog.hpp>
 #include <pluginlib/class_list_macros.hpp>
 
 PLUGINLIB_EXPORT_CLASS(mapviz_plugins::MeasuringPlugin, mapviz::MapvizPlugin)
@@ -278,7 +295,7 @@ bool MeasuringPlugin::handleMouseMove(QMouseEvent * event)
 
 void MeasuringPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
 {
-  glLineWidth(1);
+  glLineWidth(DevicePixels(1));
   const QColor color = ui_.main_color->color();
   glColor4d(color.redF(), color.greenF(), color.blueF(), ui_.alpha->value() / 2.0);
   glBegin(GL_LINE_STRIP);
@@ -296,7 +313,7 @@ void MeasuringPlugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
   glEnd();
 
   // Draw vertices
-  glPointSize(9);
+  glPointSize(DevicePixels(9));
   glBegin(GL_POINTS);
 
   for (const auto & vertex : vertices_) {
