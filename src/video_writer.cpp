@@ -28,11 +28,16 @@
 
 #include <mapviz/video_writer.hpp>
 
+#include <QMutexLocker>
+
+#include <cstddef>
+#include <exception>
 #include <memory>
 #include <string>
 
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 
 namespace mapviz
 {
@@ -74,12 +79,14 @@ void VideoWriter::processFrame(QImage frame)
 {
   try {
     RCLCPP_DEBUG(rclcpp::get_logger("mapviz"), "VideoWriter::processFrame():");
+    cv::Size video_size;
     {
       QMutexLocker locker(&video_mutex_);
       if (!video_writer_) {
         RCLCPP_WARN(rclcpp::get_logger("mapviz"), "Got frame, but video writer wasn't open.");
         return;
       }
+      video_size = cv::Size(width_, height_);
     }
 
     cv::Mat image;
@@ -94,6 +101,18 @@ void VideoWriter::processFrame(QImage frame)
       default:
         RCLCPP_WARN(rclcpp::get_logger("mapviz"), "Unexpected image format: %d", frame.format());
         return;
+    }
+
+    // A video has one frame size, but the canvas's size in device pixels
+    // changes if mapviz moves to a monitor with a different scale factor
+    // partway through a recording.  cv::VideoWriter drops frames that don't
+    // match, so scale them to the size the video was opened with.
+    if (image.size() != video_size) {
+      cv::Mat resized;
+      const bool shrinking = image.cols > video_size.width || image.rows > video_size.height;
+      cv::resize(
+        image, resized, video_size, 0, 0, shrinking ? cv::INTER_AREA : cv::INTER_LINEAR);
+      image = resized;
     }
 
     {
