@@ -28,12 +28,15 @@
 
 #include <mapviz_plugins/topic_type_watcher.hpp>
 
+#include <QObject>
+
 #include <algorithm>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <rclcpp/logging.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 namespace mapviz_plugins
 {
