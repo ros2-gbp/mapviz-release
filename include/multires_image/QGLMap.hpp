@@ -32,14 +32,16 @@
 // QT libraries
 #include <QOpenGLFunctions_1_1>
 #include <QOpenGLWidget>
-#include <QMouseEvent>
-#include <QWheelEvent>
+#include <QObject>
+#include <QWidget>
+#include <QtGlobal>
 
 // QT auto-generated headers
 #include "ui_QGLMap.h"
-#include <tf2/transform_datatypes.hpp>
 #include <multires_image/tile.hpp>
 #include <multires_image/tile_view.hpp>
+#include <multires_image/tile_set.hpp>
+#include <tf2/LinearMath/Vector3.hpp>
 
 namespace multires_image
 {
