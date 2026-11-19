@@ -31,10 +31,14 @@
 
 // QT libraries
 #include <QOpenGLFunctions_1_1>
-#include <QOpenGLWidget>
 #include <QObject>
 #include <QTimer>
 #include <QWidget>
+#include <QByteArray>
+#include <QMetaType>
+#include <QMouseEvent>
+#include <QPointF>
+#include <QtGlobal>
 
 // C++ standard libraries
 #include <string>
@@ -44,7 +48,6 @@
 
 // ROS libraries
 #include <rclcpp/rclcpp.hpp>
-#include <tf2/transform_datatypes.hpp>
 
 // Mapviz libraries
 #include <mapviz/map_canvas.hpp>
@@ -60,7 +63,7 @@
 
 namespace mapviz_plugins
 {
-class PlanRoutePluginTest;
+class PlanRoutePluginTest;  // IWYU pragma: keep
 
 class PlanRoutePlugin : public mapviz::MapvizPlugin, protected QOpenGLFunctions_1_1
 {
