@@ -29,8 +29,11 @@
 #ifndef MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_HPP_
 #define MAPVIZ_PLUGINS__POINT_CLICK_PUBLISHER_PLUGIN_HPP_
 
-#include <QOpenGLWidget>
+#include <QObject>
+#include <QPointF>
+#include <QString>
 #include <QTimer>
+#include <QWidget>
 
 // C++ Standard Libraries
 #include <string>
