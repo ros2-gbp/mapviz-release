@@ -28,15 +28,31 @@
 
 #include <mapviz_plugins/pointcloud2_plugin.hpp>
 
+#include <qopenglext.h>
+
 // QT libraries
+#include <QCheckBox>
 #include <QComboBox>
-#include <QDialog>
+#include <QDoubleSpinBox>
+#include <QLabel>
+#include <QLineEdit>
+#include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QPainter>
+#include <QPen>
+#include <QPixmap>
+#include <QPushButton>
 #include <QSignalBlocker>
+#include <QSpinBox>
+#include <QString>
+#include <QVariant>
+#include <Qt>
+#include <QtGlobal>
 
 // C++ standard libraries
 #include <algorithm>
-#include <cstdio>
+#include <cstdint>
+#include <functional>
 #include <limits>
 #include <map>
 #include <string>
@@ -46,8 +62,13 @@
 #include <mapviz_plugins/topic_select.hpp>
 
 // ROS libraries
+#include <mapviz/color_button.hpp>
+#include <mapviz/status_label.hpp>
+#include <mapviz/widgets.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/point_field.hpp>
 #include "swri_transform_util/transform.h"
+#include "yaml-cpp/yaml.h"
 
 // Declare plugin
 #include <pluginlib/class_list_macros.hpp>
@@ -76,15 +97,7 @@ PointCloud2Plugin::PointCloud2Plugin()
 {
   ui_.setupUi(config_widget_);
 
-  // Set background white
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  // Set status text red
-  QPalette p3(ui_.status->palette());
-  p3.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(p3);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   // Initialize color selector colors
   ui_.min_color->setColor(Qt::white);
@@ -199,8 +212,7 @@ void PointCloud2Plugin::ClearHistory()
 void PointCloud2Plugin::DrawIcon()
 {
   if (icon_) {
-    QPixmap icon(16, 16);
-    icon.fill(Qt::transparent);
+    QPixmap icon = mapviz::IconWidget::CreatePixmap();
 
     QPainter painter(&icon);
     painter.setRenderHint(QPainter::Antialiasing, true);
@@ -368,7 +380,6 @@ void PointCloud2Plugin::SelectTopic()
   }
 }
 
-
 void PointCloud2Plugin::TopicEdited()
 {
   std::string topic = ui_.topic->text().trimmed().toStdString();
@@ -382,7 +393,7 @@ void PointCloud2Plugin::connectCallback(const std::string & topic, const rmw_qos
     initialized_ = false;
     scans_.clear();
     has_message_ = false;
-    PrintWarning("No messages received.");
+    PrintWarning("No messages received");
 
     topic_ = topic;
     qos_ = qos;
@@ -663,7 +674,7 @@ void PointCloud2Plugin::Draw(double /*x*/, double /*y*/, double /*scale*/)
     color_buffer_.create();
   }
 
-  glPointSize(point_size_);
+  glPointSize(DevicePixels(point_size_));
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_COLOR_ARRAY);
