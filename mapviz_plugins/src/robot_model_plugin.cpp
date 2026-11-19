@@ -33,15 +33,44 @@
 #include <QPainter>
 #include <QPen>
 #include <QPixmap>
-#include <GL/gl.h>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOffscreenSurface>
+#include <QBrush>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QLineEdit>
+#include <QList>
+#include <QOpenGLWidget>
+#include <QPoint>
+#include <QPolygon>
+#include <QPushButton>
+#include <QStackedWidget>
+#include <QString>
+#include <QtGlobal>
 
+#include "assimp/color4.h"
+#include "assimp/config.h"
+#include "assimp/material.h"
+#include "assimp/mesh.h"
+#include "assimp/types.h"
+#include <mapviz/status_label.hpp>
+#include <mapviz/widgets.hpp>
 #include <mapviz_plugins/topic_select.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include "rmw/qos_profiles.h"
+#include "swri_transform_util/transform.h"
+#include <tf2/LinearMath/Matrix3x3.hpp>
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Transform.hpp>
+#include "urdf_model/color.h"
+#include "urdf_model/joint.h"
+#include "urdf_model/link.h"
+#include "urdf_model/pose.h"
+#include "yaml-cpp/yaml.h"
 
 #ifdef MAPVIZ_HAVE_URDF_MODEL_HPP
 #include <urdf/model.hpp>
@@ -49,8 +78,10 @@
 #include "urdf/model.h"
 #endif
 
+#include <assimp/material.inl>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <qopenglext.h>
 
 #include <assimp/Importer.hpp>
 #include "ament_index_cpp/version.h"
@@ -68,17 +99,16 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgcodecs/imgcodecs.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 
 PLUGINLIB_EXPORT_CLASS(
   mapviz_plugins::RobotModelPlugin,
@@ -523,13 +553,7 @@ RobotModelPlugin::RobotModelPlugin()
 {
   ui_.setupUi(config_widget_);
 
-  QPalette p(config_widget_->palette());
-  p.setColor(QPalette::Window, Qt::white);
-  config_widget_->setPalette(p);
-
-  QPalette ps(ui_.status->palette());
-  ps.setColor(QPalette::Text, Qt::red);
-  ui_.status->setPalette(ps);
+  mapviz::SetStatusLevel(ui_.status, mapviz::StatusLevel::Error);
 
   connect(
     ui_.source_combo, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -581,8 +605,7 @@ void RobotModelPlugin::DrawIcon()
   if (!icon_) {
     return;
   }
-  QPixmap icon(16, 16);
-  icon.fill(Qt::transparent);
+  QPixmap icon = mapviz::IconWidget::CreatePixmap();
   QPainter painter(&icon);
   painter.setRenderHint(QPainter::Antialiasing, true);
 
@@ -623,7 +646,7 @@ void RobotModelPlugin::SourceChanged(int index)
   }
   topic_ = "";
   file_path_ = "";
-  PrintWarning(index == 0 ? "No topic." : "No file selected.");
+  PrintWarning(index == 0 ? "No topic" : "No file selected");
 }
 
 void RobotModelPlugin::BrowseFile()
@@ -646,7 +669,7 @@ void RobotModelPlugin::FileEdited()
   }
   file_path_ = path;
   if (file_path_.empty()) {
-    PrintWarning("No file selected.");
+    PrintWarning("No file selected");
     return;
   }
   if (std::filesystem::path(file_path_).extension() == ".xacro") {
@@ -690,7 +713,7 @@ void RobotModelPlugin::TopicEdited()
   description_sub_.reset();
 
   if (topic_.empty()) {
-    PrintWarning("No topic.");
+    PrintWarning("No topic");
     return;
   }
 
@@ -719,13 +742,13 @@ void RobotModelPlugin::parseUrdf(const std::string & xml)
 {
   urdf::Model model;
   if (!model.initString(xml)) {
-    PrintError("Failed to parse URDF.");
+    PrintError("Failed to parse URDF");
     return;
   }
 
   // Always use the URDF's declared root link as the TF source frame.
   if (!model.root_link_) {
-    PrintError("URDF has no root link.");
+    PrintError("URDF has no root link");
     return;
   }
   const std::string root = model.root_link_->name;
@@ -748,7 +771,7 @@ void RobotModelPlugin::parseUrdf(const std::string & xml)
       "OK — " + std::to_string(geometries_.size()) +
       " shapes from \"" + root + "\"");
   } else {
-    PrintWarning("Parsed URDF but no box/cylinder/sphere geometry found.");
+    PrintWarning("Parsed URDF but no box/cylinder/sphere geometry found");
   }
 }
 
@@ -886,7 +909,6 @@ void RobotModelPlugin::Draw(double x, double y, double scale)
   glPopAttrib();
   PrintInfo("OK");
 }
-
 
 void RobotModelPlugin::rebakeRaster(
   const std::vector<LinkGeometry> & geoms, double scale, int canvas_max_dim,
